@@ -117,3 +117,9 @@ jobs:
         run: |
           echo "Build succeeded on ${{ matrix.os }}"
           ccache -s
+
+      - name: Upload binary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: duckdb_ubuntu
+          path: build/_deps/duckdb-build/duckdb
