@@ -1,6 +1,7 @@
 #pragma once
 
 #include "readers/base_reader.hpp"
+#include "utils/func.hpp"
 
 #include <graphar/chunk_info_reader.h>
 #include <graphar/fwd.h>
@@ -10,7 +11,6 @@
 #include <graphar/types.h>
 
 #include <duckdb.hpp>
-#include <iostream>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -52,9 +52,13 @@ private:
 template <typename BaseArrowChunkReader>
 class BaseDuckChunkReader {
 public:
-    BaseDuckChunkReader(ClientContext& init_context, std::shared_ptr<BaseArrowChunkReader> init_base,
+    BaseDuckChunkReader(ClientContext& init_context, std::vector<std::shared_ptr<BaseArrowChunkReader>> init_bases,
                         std::shared_ptr<DuckParquetFileReader> init_file_reader)
-        : context(init_context), base(std::move(init_base)), file_reader(std::move(init_file_reader)) {}
+        : context(init_context), bases(std::move(init_bases)), file_reader(std::move(init_file_reader)) {
+        if (bases.empty()) {
+            throw std::runtime_error("Bases vector cannot be empty");
+        }
+    }
 
     idx_t ReserveRowsToRead() {
         if (cur_chunk && read_rows < cur_chunk->size()) {
@@ -64,21 +68,27 @@ public:
         if (cur_result && (cur_chunk = cur_result->Fetch())) {
             return cur_chunk->size();
         }
-        auto gc_result = base->GetChunk();
-        if (gc_result.no_more_chunks) {
-            return 0;
+        auto gc_result = bases[base_idx]->GetChunk();
+        while (gc_result.no_more_chunks) {
+            base_idx++;
+            if (base_idx >= bases.size()) {
+                return 0;
+            }
+            gc_result = bases[base_idx]->GetChunk();
         }
         auto maybe_path = gc_result.chunk;
         if (maybe_path.has_error()) {
             throw maybe_path.error();
         }
         auto path = maybe_path.value();
+        cur_result_idx = gc_result.chunk_idx;
+        cur_read_idx = 0;
         cur_result = file_reader->ReadFileToTable(path, proj_columns, gc_result.rows_range);
         cur_chunk = cur_result->Fetch();
         return cur_chunk->size();
     }
 
-    graphar::Result<duckdb::unique_ptr<duckdb::DataChunk>> GetChunk(duckdb::idx_t num_rows) {
+    graphar::Result<graphar::GetChunkFinalResult> GetChunk(duckdb::idx_t num_rows) {
         if (ReserveRowsToRead() == 0) {
             throw graphar::Status::IndexError("No more chunks to read!");
         }
@@ -91,7 +101,8 @@ public:
         res->Reference(*cur_chunk);
         res->Slice(read_rows, num_rows);
         read_rows += num_rows;
-        return res;
+        cur_read_idx++;
+        return std::make_pair(std::move(res), GetChunkIdx(cur_result_idx, cur_read_idx));
     }
 
     void SelectColumns(std::vector<duckdb::column_t> proj_columns_) {
@@ -102,11 +113,14 @@ public:
     }
 
 protected:
-    std::shared_ptr<BaseArrowChunkReader> base;
+    std::vector<std::shared_ptr<BaseArrowChunkReader>> bases;
+    duckdb::idx_t base_idx = 0;
     std::vector<duckdb::column_t> proj_columns;
     duckdb::idx_t read_rows = 0;
     duckdb::unique_ptr<duckdb::DataChunk> cur_chunk = nullptr;
+    duckdb::idx_t cur_read_idx = 0;
     duckdb::unique_ptr<duckdb::QueryResult> cur_result = nullptr;
+    duckdb::idx_t cur_result_idx = 0;
 
     std::shared_ptr<DuckParquetFileReader> file_reader;
     ClientContext& context;
@@ -123,12 +137,16 @@ public:
         ClientContext& context, std::shared_ptr<DuckParquetFileReader> file_reader,
         const std::shared_ptr<graphar::VertexInfo>& vertex_info,
         const std::shared_ptr<graphar::PropertyGroup>& property_group, const std::string& prefix,
-        std::shared_ptr<graphar::TSVertexPropertyChunkInfoReader> init_baseptr = nullptr) {
-        if (!init_baseptr) {
-            GAR_ASSIGN_OR_RAISE(init_baseptr,
+        const std::vector<std::shared_ptr<graphar::TSVertexPropertyChunkInfoReader>>& init_baseptrs = {}) {
+        std::vector<std::shared_ptr<graphar::TSVertexPropertyChunkInfoReader>> bases;
+        if (init_baseptrs.empty()) {
+            GAR_ASSIGN_OR_RAISE(auto init_baseptr,
                                 graphar::TSVertexPropertyChunkInfoReader::Make(vertex_info, property_group, prefix));
+            bases.push_back(std::move(init_baseptr));
+        } else {
+            bases = init_baseptrs;
         }
-        return std::make_shared<DuckVertexChunkReader>(vertex_info, context, std::move(init_baseptr), file_reader);
+        return std::make_shared<DuckVertexChunkReader>(vertex_info, context, std::move(bases), file_reader);
     }
 
 private:
@@ -138,11 +156,11 @@ private:
 template <typename BaseArrowChunkReader>
 class DuckEdgeChunkReader : public BaseDuckChunkReader<BaseArrowChunkReader> {
 public:
-    DuckEdgeChunkReader(std::shared_ptr<BaseArrowChunkReader> init_base,
+    DuckEdgeChunkReader(const std::vector<std::shared_ptr<BaseArrowChunkReader>>& init_bases,
                         std::shared_ptr<DuckParquetFileReader> init_file_reader, ClientContext& init_context,
                         const std::shared_ptr<graphar::EdgeInfo>& edge_info_, graphar::AdjListType adj_list_type_,
                         const std::string& prefix_)
-        : BaseDuckChunkReader<BaseArrowChunkReader>(init_context, std::move(init_base), std::move(init_file_reader)),
+        : BaseDuckChunkReader<BaseArrowChunkReader>(init_context, std::move(init_bases), std::move(init_file_reader)),
           edge_info(edge_info_),
           adj_list_type(adj_list_type_),
           prefix(prefix_) {}
@@ -150,25 +168,31 @@ public:
     static graphar::Result<std::shared_ptr<DuckEdgeChunkReader>> Make(
         ClientContext& context, std::shared_ptr<DuckParquetFileReader> file_reader,
         const std::shared_ptr<graphar::EdgeInfo>& edge_info, graphar::AdjListType adj_list_type,
-        const std::string& prefix, std::shared_ptr<BaseArrowChunkReader> init_baseptr = nullptr) {
-        if (!init_baseptr) {
-            GAR_ASSIGN_OR_RAISE(init_baseptr, BaseArrowChunkReader::Make(edge_info, adj_list_type, prefix));
+        const std::string& prefix, const std::vector<std::shared_ptr<BaseArrowChunkReader>>& init_baseptrs = {}) {
+        std::vector<std::shared_ptr<BaseArrowChunkReader>> bases;
+        if (init_baseptrs.empty()) {
+            GAR_ASSIGN_OR_RAISE(auto init_baseptr, BaseArrowChunkReader::Make(edge_info, adj_list_type, prefix));
+            bases.push_back(std::move(init_baseptr));
+        } else {
+            bases = init_baseptrs;
         }
-        return std::make_shared<DuckEdgeChunkReader>(std::move(init_baseptr), file_reader, context, edge_info,
-                                                     adj_list_type, prefix);
+        return std::make_shared<DuckEdgeChunkReader>(bases, file_reader, context, edge_info, adj_list_type, prefix);
     }
 
     static graphar::Result<std::shared_ptr<DuckEdgeChunkReader>> Make(
         ClientContext& context, std::shared_ptr<DuckParquetFileReader> file_reader,
         const std::shared_ptr<graphar::EdgeInfo>& edge_info,
         const std::shared_ptr<graphar::PropertyGroup>& property_group, graphar::AdjListType adj_list_type,
-        const std::string& prefix, std::shared_ptr<BaseArrowChunkReader> init_baseptr = nullptr) {
-        if (!init_baseptr) {
-            GAR_ASSIGN_OR_RAISE(init_baseptr,
+        const std::string& prefix, const std::vector<std::shared_ptr<BaseArrowChunkReader>>& init_baseptrs = {}) {
+        std::vector<std::shared_ptr<BaseArrowChunkReader>> bases;
+        if (init_baseptrs.empty()) {
+            GAR_ASSIGN_OR_RAISE(auto init_baseptr,
                                 BaseArrowChunkReader::Make(edge_info, property_group, adj_list_type, prefix))
+            bases.push_back(std::move(init_baseptr));
+        } else {
+            bases = init_baseptrs;
         }
-        return std::make_shared<DuckEdgeChunkReader>(std::move(init_baseptr), file_reader, context, edge_info,
-                                                     adj_list_type, prefix);
+        return std::make_shared<DuckEdgeChunkReader>(bases, file_reader, context, edge_info, adj_list_type, prefix);
     }
 
     void SelectColumns(std::vector<duckdb::column_t> proj_columns_) {
