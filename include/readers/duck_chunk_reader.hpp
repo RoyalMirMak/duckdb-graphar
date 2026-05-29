@@ -17,6 +17,8 @@
 #include <utility>
 #include <vector>
 
+#include <fstream>
+
 namespace duckdb {
 
 class QueryStringConstructor {
@@ -36,6 +38,20 @@ public:
     explicit DuckParquetFileReader(std::shared_ptr<duckdb::Connection> conn_) : conn(conn_) {}
     unique_ptr<QueryResult> ReadFileToTable(const std::string& path, const std::vector<duckdb::column_t>& proj_columns,
                                             std::pair<int64_t, int64_t> range = {-1, -1}) {
+         if (range.first != -1 && range.second != -1 && range.first < range.second) {
+            const int64_t rows_per_row_group = 1048576;
+            int64_t start_rg = range.first / rows_per_row_group;
+            int64_t end_rg = (range.second - 1) / rows_per_row_group;
+            
+            static std::mutex log_mutex;
+            std::lock_guard<std::mutex> lock(log_mutex);
+            static std::ofstream log_file("touched_row_groups.log", std::ios_base::app);
+            
+            for (int64_t rg = start_rg; rg <= end_rg; ++rg) {
+                log_file << path << ":" << rg << "\n";
+            }
+        }
+        
         auto query_string = query_string_constructor.GetMainQueryString(proj_columns, range);
         auto query_result = conn->Query(query_string, Value(path));
         if (query_result->HasError()) {
