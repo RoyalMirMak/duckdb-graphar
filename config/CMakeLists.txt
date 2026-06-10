@@ -18,6 +18,7 @@ set(EXTENSION_INCLUDES
     ${EXTENSION_ROOT_DIR}/include
     ${GRAPHAR_INSTALL_DIR}/include
     ${GRAPHAR_SOURCE_DIR}/graphar/cpp/thirdparty
+    ${EXTENSION_ROOT_DIR}/third_party/graphar/src/cpp/thirdparty
     ${duckdb_SOURCE_DIR}/src/include
     ${arrow_SOURCE_DIR}/cpp/src
     ${ARROW_INSTALL_DIR}/include
