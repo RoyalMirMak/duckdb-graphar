@@ -40,5 +40,36 @@ find_package(Parquet REQUIRED CONFIG)
 
 find_package(graphar REQUIRED CONFIG)
 
-# Include directories are now handled in config/CMakeLists.txt
-# This file is intentionally minimal - the actual build logic is in extension_config.cmake
+include_directories(include)
+
+# CRITICAL: Add GraphAr's thirdparty directory for mini-yaml dependency
+# This must be done BEFORE the build macros so DuckDB's internal compilation can find the headers
+if(GRAPHAR_ROOT)
+    # When built via Makefile, GRAPHAR_ROOT points to third_party/graphar/install
+    # The source is at third_party/graphar/src
+    include_directories(${EXTENSION_ROOT_DIR}/third_party/graphar/src/cpp/thirdparty)
+else()
+    # When built via FetchContent (DuckDB's internal build)
+    set(GRAPHAR_SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/graphar-prefix/src)
+    include_directories(${GRAPHAR_SOURCE_DIR}/graphar/cpp/thirdparty)
+endif()
+
+file(GLOB_RECURSE EXTENSION_SOURCES CONFIGURE_DEPENDS "${EXTENSION_ROOT_DIR}/src/*.cpp")
+
+message(LOG "Building static extension")
+build_static_extension(${TARGET_NAME} ${EXTENSION_SOURCES})
+
+message(LOG "Building loadable extension")
+build_loadable_extension(${TARGET_NAME} " " ${EXTENSION_SOURCES})
+
+set(EXTENSION_LIBRARIES
+        graphar
+        Arrow::arrow_static)
+
+target_link_libraries(${EXTENSION_NAME} ${EXTENSION_LIBRARIES})
+target_link_libraries(${LOADABLE_EXTENSION_NAME} ${EXTENSION_LIBRARIES})
+
+install(TARGETS ${EXTENSION_NAME}
+        EXPORT "${DUCKDB_EXPORT_SET}"
+        LIBRARY DESTINATION "${INSTALL_LIB_DIR}"
+        ARCHIVE DESTINATION "${INSTALL_LIB_DIR}")
