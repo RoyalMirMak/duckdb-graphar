@@ -1,0 +1,59 @@
+require duckdb_graphar
+
+statement ok
+SET autoinstall_known_extensions=1;
+
+statement ok
+SET autoload_known_extensions=1;
+
+query I
+SELECT COUNT(*) FROM read_vertices('__WORKING_DIRECTORY__/../data/snap-musae-github-csv/graphar/Git.graph.yaml', type='Person');
+----
+37700
+
+query IIIIII
+SELECT * FROM read_vertices('__WORKING_DIRECTORY__/../data/snap-musae-github-csv/graphar/Git.graph.yaml', type='Person') WHERE _grapharVertexIndex=0;
+----
+0
+0
+Eiryyy
+false
+0
+0
+
+statement ok
+ATTACH '__WORKING_DIRECTORY__/../data/snap-musae-github-csv/graphar/Git.graph.yaml' as test_db (type duckdb_graphar);
+
+query I
+SELECT id FROM 'Person' LIMIT 4;
+----
+0
+1
+2
+3
+
+query I
+SELECT id FROM 'Person' WHERE _graphArVertexIndex=4;
+----
+4
+
+query I
+SELECT COUNT(*) FROM 'Person';
+----
+37700
+
+query I
+SELECT COUNT(*) FROM 'Person' WHERE _graphArVertexIndex IN [0, 1, 2, 3];
+----
+4
+
+query II
+SELECT id, _graphArVertexIndex FROM 'Person' WHERE _graphArVertexIndex IN [0, 1] ORDER BY _graphArVertexIndex;
+----
+0	0
+1	1
+
+query I
+SELECT COUNT(*) FROM 'Person' WHERE _graphArVertexIndex IN [100, 11, 5];
+----
+3
