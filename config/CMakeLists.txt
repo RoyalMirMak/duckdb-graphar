@@ -44,9 +44,11 @@ if (NOT APPLE)
     list(APPEND EXT_LIBS "-Wl,--disable-new-dtags") # Use rpath for ubuntu build
 endif()
 
-
+# NOTE: duckdb_graphar_extension should NOT link against duckdb_static
+# The build_static_extension() macro already handles DuckDB linkage internally.
+# Linking against duckdb_static here causes duplicate symbol errors when the
+# extension is statically linked into DuckDB.
 target_link_libraries(duckdb_graphar_extension
-    duckdb_static
     ${EXT_LIBS}
 )
 

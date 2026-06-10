@@ -62,11 +62,13 @@ build_static_extension(${TARGET_NAME} ${EXTENSION_SOURCES})
 message(LOG "Building loadable extension")
 build_loadable_extension(${TARGET_NAME} " " ${EXTENSION_SOURCES})
 
+# NOTE: The static extension (${EXTENSION_NAME}) should NOT link against duckdb_static
+# The build_static_extension() macro already handles DuckDB linkage internally.
+# Only link against external libraries (Arrow, GraphAr).
 set(EXTENSION_LIBRARIES
         graphar
         Arrow::arrow_static)
 
-target_link_libraries(${EXTENSION_NAME} ${EXTENSION_LIBRARIES})
 target_link_libraries(${LOADABLE_EXTENSION_NAME} ${EXTENSION_LIBRARIES})
 
 install(TARGETS ${EXTENSION_NAME}
