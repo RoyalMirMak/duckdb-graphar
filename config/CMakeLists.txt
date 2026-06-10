@@ -7,18 +7,35 @@ file(GLOB_RECURSE EXTENSION_SOURCES CONFIGURE_DEPENDS "${EXTENSION_ROOT_DIR}/src
 set(PARAMETERS "-warnings")
 set(EXTENSION_STATIC_BUILD ON CACHE BOOL "Build extensions with static DuckDB")
 
-# Define paths FIRST - before build macros
-set(DEPS_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps)
-set(ARROW_INSTALL_DIR ${DEPS_INSTALL_DIR}/arrow-install)
-set(GRAPHAR_INSTALL_DIR ${DEPS_INSTALL_DIR}/graphar-install)
-set(GRAPHAR_SOURCE_DIR ${DEPS_INSTALL_DIR}/graphar-prefix/src)
+# Detect build scenario and set paths accordingly
+if(DEFINED ENV{GRAPHAR_ROOT} OR GRAPHAR_ROOT)
+    # Makefile build: dependencies are in third_party/
+    if(GRAPHAR_ROOT)
+        set(GRAPHAR_INSTALL_DIR ${GRAPHAR_ROOT})
+    else()
+        set(GRAPHAR_INSTALL_DIR $ENV{GRAPHAR_ROOT})
+    endif()
+    if(ARROW_ROOT)
+        set(ARROW_INSTALL_DIR ${ARROW_ROOT})
+    else()
+        set(ARROW_INSTALL_DIR $ENV{ARROW_ROOT})
+    endif()
+    set(GRAPHAR_SOURCE_DIR ${EXTENSION_ROOT_DIR}/third_party/graphar/src)
+    set(ARROW_SOURCE_DIR ${EXTENSION_ROOT_DIR}/third_party/arrow/src)
+else()
+    # FetchContent build (DuckDB's internal build): dependencies are in _deps/
+    set(DEPS_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps)
+    set(ARROW_INSTALL_DIR ${DEPS_INSTALL_DIR}/arrow-install)
+    set(GRAPHAR_INSTALL_DIR ${DEPS_INSTALL_DIR}/graphar-install)
+    set(GRAPHAR_SOURCE_DIR ${DEPS_INSTALL_DIR}/graphar-prefix/src)
+    set(ARROW_SOURCE_DIR ${DEPS_INSTALL_DIR}/arrow-prefix/src)
+endif()
 
 # Define includes BEFORE build macros
 set(EXTENSION_INCLUDES
     ${EXTENSION_ROOT_DIR}/include
     ${GRAPHAR_INSTALL_DIR}/include
     ${GRAPHAR_SOURCE_DIR}/graphar/cpp/thirdparty
-    ${EXTENSION_ROOT_DIR}/third_party/graphar/src/cpp/thirdparty
     ${duckdb_SOURCE_DIR}/src/include
     ${arrow_SOURCE_DIR}/cpp/src
     ${ARROW_INSTALL_DIR}/include
