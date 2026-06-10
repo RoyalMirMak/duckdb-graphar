@@ -69,7 +69,11 @@ set(EXTENSION_LIBRARIES
         graphar
         Arrow::arrow_static)
 
+# Link the loadable extension (.duckdb_extension file)
 target_link_libraries(${LOADABLE_EXTENSION_NAME} ${EXTENSION_LIBRARIES})
+
+# FIX: Link the static extension so it inherits GraphAr's include directories!
+target_link_libraries(${EXTENSION_NAME} ${EXTENSION_LIBRARIES})
 
 install(TARGETS ${EXTENSION_NAME}
         EXPORT "${DUCKDB_EXPORT_SET}"
