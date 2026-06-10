@@ -43,8 +43,12 @@ find_package(graphar REQUIRED CONFIG)
 include_directories(include)
 
 # Add GraphAr's thirdparty directory for mini-yaml dependency
-set(GRAPHAR_SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/graphar-prefix/src)
-include_directories(${GRAPHAR_SOURCE_DIR}/graphar/cpp/thirdparty)
+if(GRAPHAR_ROOT)
+    include_directories(${GRAPHAR_ROOT}/cpp/thirdparty)
+else()
+    set(GRAPHAR_SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/graphar-prefix/src)
+    include_directories(${GRAPHAR_SOURCE_DIR}/graphar/cpp/thirdparty)
+endif()
 
 file(GLOB_RECURSE EXTENSION_SOURCES CONFIGURE_DEPENDS "${EXTENSION_ROOT_DIR}/src/*.cpp")
 
