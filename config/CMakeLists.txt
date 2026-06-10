@@ -7,6 +7,26 @@ file(GLOB_RECURSE EXTENSION_SOURCES CONFIGURE_DEPENDS "${EXTENSION_ROOT_DIR}/src
 set(PARAMETERS "-warnings")
 set(EXTENSION_STATIC_BUILD ON CACHE BOOL "Build extensions with static DuckDB")
 
+# Define paths FIRST - before build macros
+set(DEPS_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps)
+set(ARROW_INSTALL_DIR ${DEPS_INSTALL_DIR}/arrow-install)
+set(GRAPHAR_INSTALL_DIR ${DEPS_INSTALL_DIR}/graphar-install)
+set(GRAPHAR_SOURCE_DIR ${DEPS_INSTALL_DIR}/graphar-prefix/src)
+
+# Define includes BEFORE build macros
+set(EXTENSION_INCLUDES
+    ${EXTENSION_ROOT_DIR}/include
+    ${GRAPHAR_INSTALL_DIR}/include
+    ${GRAPHAR_SOURCE_DIR}/graphar/cpp/thirdparty
+    ${duckdb_SOURCE_DIR}/src/include
+    ${arrow_SOURCE_DIR}/cpp/src
+    ${ARROW_INSTALL_DIR}/include
+)
+
+# Apply includes BEFORE build macros so compiler can find headers
+include_directories(${EXTENSION_INCLUDES})
+
+# NOW build the extensions
 log_stage("Building static extension")
 build_static_extension(duckdb_graphar ${EXTENSION_SOURCES})
 log_done()
@@ -14,24 +34,6 @@ log_done()
 log_stage("Building loadable extension")
 build_loadable_extension(duckdb_graphar ${PARAMETERS} ${EXTENSION_SOURCES})
 log_done()
-
-set(DEPS_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps)
-set(ARROW_INSTALL_DIR ${DEPS_INSTALL_DIR}/arrow-install)
-set(GRAPHAR_INSTALL_DIR ${DEPS_INSTALL_DIR}/graphar-install)
-
-set(GRAPHAR_SOURCE_DIR ${DEPS_INSTALL_DIR}/graphar-prefix/src)
-
-set(EXTENSION_INCLUDES
-    $<BUILD_INTERFACE:${EXTENSION_ROOT_DIR}/include>
-    $<BUILD_INTERFACE:${GRAPHAR_INSTALL_DIR}/include>
-    $<BUILD_INTERFACE:${GRAPHAR_SOURCE_DIR}/graphar/cpp/thirdparty>
-    $<BUILD_INTERFACE:${duckdb_SOURCE_DIR}/src/include>
-    $<BUILD_INTERFACE:${arrow_SOURCE_DIR}/cpp/src>
-    $<BUILD_INTERFACE:${ARROW_INSTALL_DIR}/include>
-)
-
-target_include_directories(duckdb_graphar_extension PUBLIC ${EXTENSION_INCLUDES} $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-target_include_directories(duckdb_graphar_loadable_extension PUBLIC ${EXTENSION_INCLUDES} $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 set(EXT_LIBS
     arrow::arrow_shared
