@@ -30,8 +30,8 @@ set(EXTENSION_INCLUDES
     $<BUILD_INTERFACE:${ARROW_INSTALL_DIR}/include>
 )
 
-target_include_directories(duckdb_graphar_extension PUBLIC ${EXTENSION_INCLUDES} $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-target_include_directories(duckdb_graphar_loadable_extension PUBLIC ${EXTENSION_INCLUDES} $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+target_include_directories(duckdb_graphar_extension PRIVATE ${EXTENSION_INCLUDES} $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+target_include_directories(duckdb_graphar_loadable_extension PRIVATE ${EXTENSION_INCLUDES} $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 set(EXT_LIBS
     arrow::arrow_shared
@@ -43,7 +43,6 @@ endif()
 
 
 target_link_libraries(duckdb_graphar_extension
-    duckdb_static
     ${EXT_LIBS}
 )
 
