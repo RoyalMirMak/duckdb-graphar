@@ -1,10 +1,14 @@
 # =============================================
 # Build Targets
 # =============================================
-
 file(GLOB_RECURSE EXTENSION_SOURCES CONFIGURE_DEPENDS "${EXTENSION_ROOT_DIR}/src/*.cpp")
-
 set(PARAMETERS "-warnings")
+
+# FIX 2: Enforce C++20 so static templates evaluate evenly with DuckDB Core
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 set(EXTENSION_STATIC_BUILD ON CACHE BOOL "Build extensions with static DuckDB")
 
 log_stage("Building static extension")
@@ -18,9 +22,9 @@ log_done()
 set(DEPS_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps)
 set(ARROW_INSTALL_DIR ${DEPS_INSTALL_DIR}/arrow-install)
 set(GRAPHAR_INSTALL_DIR ${DEPS_INSTALL_DIR}/graphar-install)
-
 set(GRAPHAR_SOURCE_DIR ${DEPS_INSTALL_DIR}/graphar-prefix/src)
 
+# FIX 1: Provide GraphAr/mini-yaml includes for CI builds
 set(EXTENSION_INCLUDES
     $<BUILD_INTERFACE:${EXTENSION_ROOT_DIR}/include>
     $<BUILD_INTERFACE:${GRAPHAR_INSTALL_DIR}/include>
@@ -40,9 +44,9 @@ set(EXT_LIBS
     graphar::graphar_shared)
 
 if (NOT APPLE)
-    list(APPEND EXT_LIBS "-Wl,--disable-new-dtags") # Use rpath for ubuntu build
+    # FIX 2: Add --allow-multiple-definition locally for Ubuntu static linking
+    list(APPEND EXT_LIBS "-Wl,--disable-new-dtags" "-Wl,--allow-multiple-definition") 
 endif()
-
 
 target_link_libraries(duckdb_graphar_extension
     duckdb_static
