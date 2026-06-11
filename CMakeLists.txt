@@ -14,7 +14,7 @@ if(UNIX AND NOT APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++ -static-libgcc")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
-    # Fix duplicate symbol errors on linux standalone build
+    # GNU ld multiple definitions block bypass
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--allow-multiple-definition")
 endif()
 
@@ -52,7 +52,7 @@ set(EXTENSION_LIBRARIES
 target_link_libraries(${EXTENSION_NAME} ${EXTENSION_LIBRARIES})
 target_link_libraries(${LOADABLE_EXTENSION_NAME} ${EXTENSION_LIBRARIES})
 
-# FIX 1: Provide graphar thirdparty/mini-yaml includes safely
+# Feed the GraphAr mini-yaml thirdparty includes safely
 set(GRAPHAR_THIRDPARTY_INCLUDES
     $<BUILD_INTERFACE:${EXTENSION_ROOT_DIR}/build/_deps/graphar-prefix/src/graphar/cpp/thirdparty>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/_deps/graphar-prefix/src/graphar/cpp/thirdparty>
