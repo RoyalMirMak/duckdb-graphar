@@ -2,6 +2,16 @@
 # Build Targets
 # =============================================
 
+# Add these lines right here at the top!
+# 1. Force C++20 across ALL of DuckDB to prevent ODR/COMDAT mismatches
+set(CMAKE_CXX_STANDARD 20 CACHE STRING "Force C++20 for DuckDB globally" FORCE)
+
+# 2. Globally inject Linux linker fixes so that libduckdb.so actually receives them
+if(UNIX AND NOT APPLE)
+    add_compile_options("-static-libstdc++" "-static-libgcc")
+    add_link_options("-static-libstdc++" "-static-libgcc" "-Wl,--allow-multiple-definition")
+endif()
+
 file(GLOB_RECURSE EXTENSION_SOURCES CONFIGURE_DEPENDS "${EXTENSION_ROOT_DIR}/src/*.cpp")
 
 set(PARAMETERS "-warnings")
