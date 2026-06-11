@@ -25,6 +25,8 @@ set(EXTENSION_INCLUDES
     $<BUILD_INTERFACE:${EXTENSION_ROOT_DIR}/include>
     $<BUILD_INTERFACE:${GRAPHAR_INSTALL_DIR}/include>
     $<BUILD_INTERFACE:${GRAPHAR_SOURCE_DIR}/graphar/cpp/thirdparty>
+    $<BUILD_INTERFACE:${EXTENSION_ROOT_DIR}/build/_deps/graphar-prefix/src/graphar/cpp/thirdparty>
+    $<BUILD_INTERFACE:${EXTENSION_ROOT_DIR}/third_party/graphar/src/cpp/thirdparty>
     $<BUILD_INTERFACE:${duckdb_SOURCE_DIR}/src/include>
     $<BUILD_INTERFACE:${arrow_SOURCE_DIR}/cpp/src>
     $<BUILD_INTERFACE:${ARROW_INSTALL_DIR}/include>

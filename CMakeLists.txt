@@ -57,6 +57,14 @@ set(EXTENSION_LIBRARIES
 target_link_libraries(${EXTENSION_NAME} ${EXTENSION_LIBRARIES})
 target_link_libraries(${LOADABLE_EXTENSION_NAME} ${EXTENSION_LIBRARIES})
 
+set(GRAPHAR_THIRDPARTY_INCLUDES
+    $<BUILD_INTERFACE:${EXTENSION_ROOT_DIR}/build/_deps/graphar-prefix/src/graphar/cpp/thirdparty>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/_deps/graphar-prefix/src/graphar/cpp/thirdparty>
+    $<BUILD_INTERFACE:${EXTENSION_ROOT_DIR}/third_party/graphar/src/cpp/thirdparty>
+)
+target_include_directories(${EXTENSION_NAME} PRIVATE ${GRAPHAR_THIRDPARTY_INCLUDES})
+target_include_directories(${LOADABLE_EXTENSION_NAME} PRIVATE ${GRAPHAR_THIRDPARTY_INCLUDES})
+
 install(TARGETS ${EXTENSION_NAME}
         EXPORT "${DUCKDB_EXPORT_SET}"
         LIBRARY DESTINATION "${INSTALL_LIB_DIR}"
