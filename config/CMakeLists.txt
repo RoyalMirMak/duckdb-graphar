@@ -64,8 +64,7 @@ build_loadable_extension(duckdb_graphar ${PARAMETERS} ${EXTENSION_SOURCES})
 log_done()
 
 # =============================================
-# Fix: Strictly use static configurations for Arrow and GraphAr 
-# to avoid CMake alias confusion on Linux
+# Link Libraries
 # =============================================
 set(EXT_LIBS
     Arrow::arrow_static
@@ -73,27 +72,24 @@ set(EXT_LIBS
 
 if (NOT APPLE)
     list(APPEND EXT_LIBS "-Wl,--disable-new-dtags") # Use rpath for ubuntu build
+    
+    # THE FIX: Inject the duplicate forgiveness flag directly into the library list.
+    # This guarantees DuckDB's custom macros cannot strip it out, and it places
+    # the flag in the exact correct order for the Linux linker.
+    list(APPEND EXT_LIBS "-Wl,--allow-multiple-definition")
+    
+    # If the above still complains, you can also hide the duplicates from propagating using this standard DuckDB extension flag:
+    list(APPEND EXT_LIBS "-Wl,--exclude-libs,ALL") 
 endif()
 
-# Link the static extension
+# NOTE: duckdb_graphar_extension should NOT link against duckdb_static
 target_link_libraries(duckdb_graphar_extension
     ${EXT_LIBS}
 )
 
-# Link the loadable extension
 target_link_libraries(duckdb_graphar_loadable_extension
     ${EXT_LIBS}
 )
-
-# =============================================
-# Fix: Forcefully apply the forgiveness flag directly to the target. 
-# This prevents DuckDB's internal build macros from stripping it out!
-# =============================================
-if(UNIX AND NOT APPLE)
-    target_link_options(duckdb_graphar_loadable_extension PRIVATE "-Wl,--allow-multiple-definition")
-    # Also apply to static just to be absolutely safe
-    target_link_options(duckdb_graphar_extension PRIVATE "-Wl,--allow-multiple-definition")
-endif()
 
 # =============================================
 # Installation
