@@ -10,27 +10,27 @@ file(GLOB_RECURSE EXTENSION_SOURCES CONFIGURE_DEPENDS "${EXTENSION_ROOT_DIR}/src
 set(EXTENSION_STATIC_BUILD OFF CACHE BOOL "Build extensions with static DuckDB" FORCE)
 
 # Define paths FIRST (before build functions)
-set(DEPS_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps)
-set(ARROW_INSTALL_DIR ${DEPS_INSTALL_DIR}/arrow-install)
-set(GRAPHAR_INSTALL_DIR ${DEPS_INSTALL_DIR}/graphar-install)
-set(GRAPHAR_SOURCE_DIR ${DEPS_INSTALL_DIR}/graphar-prefix/src)
+# ARROW_ROOT and GRAPHAR_ROOT are set by Makefile via third_party/extension_deps.cmake
+# This ensures we use the correct paths for both CI (make release) and local builds
+if(ARROW_ROOT AND GRAPHAR_ROOT)
+    # Building via Makefile (CI or local make)
+    set(ARROW_INSTALL_DIR ${ARROW_ROOT})
+    set(GRAPHAR_INSTALL_DIR ${GRAPHAR_ROOT})
+    # GraphAr source is in third_party/graphar/src
+    set(GRAPHAR_SOURCE_DIR ${GRAPHAR_ROOT}/../src)
+else()
+    # Direct CMake build (fallback)
+    set(DEPS_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps)
+    set(ARROW_INSTALL_DIR ${DEPS_INSTALL_DIR}/arrow-install)
+    set(GRAPHAR_INSTALL_DIR ${DEPS_INSTALL_DIR}/graphar-install)
+    set(GRAPHAR_SOURCE_DIR ${DEPS_INSTALL_DIR}/graphar-prefix/src)
+endif()
 
-# Define include paths BEFORE build functions
-# These must be set before build_static_extension and build_loadable_extension are called
-set(EXTENSION_INCLUDES
-    $<BUILD_INTERFACE:${EXTENSION_ROOT_DIR}/include>
-    $<BUILD_INTERFACE:${GRAPHAR_INSTALL_DIR}/include>
-    $<BUILD_INTERFACE:${GRAPHAR_SOURCE_DIR}/graphar/cpp/thirdparty>
-    $<BUILD_INTERFACE:${ARROW_INSTALL_DIR}/include>
-)
+# CRITICAL: Set include paths via DuckDB's extension mechanism BEFORE building
+# This ensures the include paths are available when the extension sources are compiled
+set(DUCKDB_EXTENSION_GRAPHAR_DUCK_INCLUDE_PATH "${GRAPHAR_INSTALL_DIR}/include;${GRAPHAR_SOURCE_DIR}/cpp/thirdparty;${ARROW_INSTALL_DIR}/include;${EXTENSION_ROOT_DIR}/include" CACHE INTERNAL "")
 
-# Apply include paths to targets BEFORE they are compiled
-# Note: duckdb_SOURCE_DIR and arrow_SOURCE_DIR are set by DuckDB's build system
-# and may not be available here, so we use the install paths which are guaranteed
-target_include_directories(duckdb_graphar_extension BEFORE PRIVATE ${EXTENSION_INCLUDES})
-target_include_directories(duckdb_graphar_loadable_extension BEFORE PRIVATE ${EXTENSION_INCLUDES})
-
-# NOW build the extensions (with includes already set)
+# Build the extensions FIRST
 log_stage("Building static extension")
 build_static_extension(duckdb_graphar ${EXTENSION_SOURCES})
 log_done()
@@ -38,6 +38,22 @@ log_done()
 log_stage("Building loadable extension")
 build_loadable_extension(duckdb_graphar ${PARAMETERS} ${EXTENSION_SOURCES})
 log_done()
+
+# NOW apply include directories to targets (targets exist now)
+# Note: This works because CMake processes target_include_directories even after target creation,
+# and the BEFORE keyword ensures these paths are searched first during compilation
+target_include_directories(duckdb_graphar_extension BEFORE PRIVATE
+    $<BUILD_INTERFACE:${EXTENSION_ROOT_DIR}/include>
+    $<BUILD_INTERFACE:${GRAPHAR_INSTALL_DIR}/include>
+    $<BUILD_INTERFACE:${GRAPHAR_SOURCE_DIR}/cpp/thirdparty>
+    $<BUILD_INTERFACE:${ARROW_INSTALL_DIR}/include>
+)
+target_include_directories(duckdb_graphar_loadable_extension BEFORE PRIVATE
+    $<BUILD_INTERFACE:${EXTENSION_ROOT_DIR}/include>
+    $<BUILD_INTERFACE:${GRAPHAR_INSTALL_DIR}/include>
+    $<BUILD_INTERFACE:${GRAPHAR_SOURCE_DIR}/cpp/thirdparty>
+    $<BUILD_INTERFACE:${ARROW_INSTALL_DIR}/include>
+)
 
 # ---- Linking strategy (AFTER build, targets exist) ----
 
