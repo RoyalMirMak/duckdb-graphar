@@ -1,17 +1,13 @@
 # =============================================
-# Build Targets
+# Build Configuration
 # =============================================
-
-file(GLOB_RECURSE EXTENSION_SOURCES CONFIGURE_DEPENDS "${EXTENSION_ROOT_DIR}/src/*.cpp")
 
 # CRITICAL: EXTENSION_STATIC_BUILD must be OFF to prevent duckdb_static from being linked
 # into the loadable extension, which causes duplicate symbol errors on Linux.
 # DuckDB symbols are resolved at dlopen time from the host process.
 set(EXTENSION_STATIC_BUILD OFF CACHE BOOL "Build extensions with static DuckDB" FORCE)
 
-# Define paths FIRST (before build functions)
-# ARROW_ROOT and GRAPHAR_ROOT are set by Makefile via third_party/extension_deps.cmake
-# This ensures we use the correct paths for both CI (make release) and local builds
+# Define paths (ARROW_ROOT and GRAPHAR_ROOT are set by Makefile via third_party/extension_deps.cmake)
 if(ARROW_ROOT AND GRAPHAR_ROOT)
     # Building via Makefile (CI or local make)
     set(ARROW_INSTALL_DIR ${ARROW_ROOT})
@@ -26,11 +22,13 @@ else()
     set(GRAPHAR_SOURCE_DIR ${DEPS_INSTALL_DIR}/graphar-prefix/src)
 endif()
 
-# CRITICAL: Set include paths via DuckDB's extension mechanism BEFORE building
-# This ensures the include paths are available when the extension sources are compiled
-set(DUCKDB_EXTENSION_GRAPHAR_DUCK_INCLUDE_PATH "${GRAPHAR_INSTALL_DIR}/include;${GRAPHAR_SOURCE_DIR}/cpp/thirdparty;${ARROW_INSTALL_DIR}/include;${EXTENSION_ROOT_DIR}/include" CACHE INTERNAL "")
+# =============================================
+# Build Targets
+# =============================================
 
-# Build the extensions FIRST
+file(GLOB_RECURSE EXTENSION_SOURCES CONFIGURE_DEPENDS "${EXTENSION_ROOT_DIR}/src/*.cpp")
+
+# Build the extensions
 log_stage("Building static extension")
 build_static_extension(duckdb_graphar ${EXTENSION_SOURCES})
 log_done()
@@ -38,22 +36,6 @@ log_done()
 log_stage("Building loadable extension")
 build_loadable_extension(duckdb_graphar ${PARAMETERS} ${EXTENSION_SOURCES})
 log_done()
-
-# NOW apply include directories to targets (targets exist now)
-# Note: This works because CMake processes target_include_directories even after target creation,
-# and the BEFORE keyword ensures these paths are searched first during compilation
-target_include_directories(duckdb_graphar_extension BEFORE PRIVATE
-    $<BUILD_INTERFACE:${EXTENSION_ROOT_DIR}/include>
-    $<BUILD_INTERFACE:${GRAPHAR_INSTALL_DIR}/include>
-    $<BUILD_INTERFACE:${GRAPHAR_SOURCE_DIR}/cpp/thirdparty>
-    $<BUILD_INTERFACE:${ARROW_INSTALL_DIR}/include>
-)
-target_include_directories(duckdb_graphar_loadable_extension BEFORE PRIVATE
-    $<BUILD_INTERFACE:${EXTENSION_ROOT_DIR}/include>
-    $<BUILD_INTERFACE:${GRAPHAR_INSTALL_DIR}/include>
-    $<BUILD_INTERFACE:${GRAPHAR_SOURCE_DIR}/cpp/thirdparty>
-    $<BUILD_INTERFACE:${ARROW_INSTALL_DIR}/include>
-)
 
 # ---- Linking strategy (AFTER build, targets exist) ----
 
