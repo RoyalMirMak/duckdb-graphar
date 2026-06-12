@@ -31,6 +31,13 @@ GRAPHAR_INSTALLED = $(GRAPHAR_DIR)/.installed
 ARROW_ROOT=$(ARROW_INSTALL_DIR)
 GRAPHAR_ROOT=$(GRAPHAR_INSTALL_DIR)
 
+# CRITICAL: Disable EXTENSION_STATIC_BUILD to prevent duplicate symbol errors on Linux.
+# This must be set BEFORE including duckdb_extension.Makefile, which sets it to 1 by default.
+# With EXTENSION_STATIC_BUILD=0, the loadable extension does NOT link duckdb_static,
+# avoiding duplicate DuckDB symbols (extension .o files already contain them from headers).
+# DuckDB symbols are resolved at runtime from the host DuckDB process via dlopen.
+EXTENSION_STATIC_BUILD := 0
+
 # Include the Makefile from extension-ci-tools
 include extension-ci-tools/makefiles/duckdb_extension.Makefile
 

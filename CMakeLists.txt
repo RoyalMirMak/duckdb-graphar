@@ -51,12 +51,10 @@ build_static_extension(${TARGET_NAME} ${EXTENSION_SOURCES})
 message(LOG "Building loadable extension")
 build_loadable_extension(${TARGET_NAME} " " ${EXTENSION_SOURCES})
 
-set(EXTENSION_LIBRARIES
-        graphar
-        Arrow::arrow_static)
-
-target_link_libraries(${EXTENSION_NAME} ${EXTENSION_LIBRARIES})
-target_link_libraries(${LOADABLE_EXTENSION_NAME} ${EXTENSION_LIBRARIES})
+# NOTE: Linking is handled in config/CMakeLists.txt
+# Static extension: no extra linking (just compilation)
+# Loadable extension: only graphar_shared (no duckdb_static, no Arrow::arrow_static)
+# This prevents duplicate symbol errors on Linux
 
 install(TARGETS ${EXTENSION_NAME}
         EXPORT "${DUCKDB_EXPORT_SET}"

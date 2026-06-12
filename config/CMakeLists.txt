@@ -4,8 +4,10 @@
 
 file(GLOB_RECURSE EXTENSION_SOURCES CONFIGURE_DEPENDS "${EXTENSION_ROOT_DIR}/src/*.cpp")
 
-set(PARAMETERS "-warnings")
-set(EXTENSION_STATIC_BUILD ON CACHE BOOL "Build extensions with static DuckDB")
+# CRITICAL: EXTENSION_STATIC_BUILD must be OFF to prevent duckdb_static from being linked
+# into the loadable extension, which causes duplicate symbol errors on Linux.
+# DuckDB symbols are resolved at dlopen time from the host process.
+set(EXTENSION_STATIC_BUILD OFF CACHE BOOL "Build extensions with static DuckDB" FORCE)
 
 log_stage("Building static extension")
 build_static_extension(duckdb_graphar ${EXTENSION_SOURCES})
@@ -70,14 +72,24 @@ target_link_libraries(duckdb_graphar_extension)
 # - Do NOT link duckdb_static: DuckDB symbols come from the host process at dlopen.
 # - -Wl,--disable-new-dtags makes the RPATH take precedence over LD_LIBRARY_PATH,
 #   which is needed so the extension finds its bundled graphar/arrow at runtime.
+# - CXX_VISIBILITY_PRESET=hidden hides extension's own symbols, preventing ODR violations
+#   when DuckDB headers are included and compiled into extension object files.
 if (APPLE)
     target_link_libraries(duckdb_graphar_loadable_extension
         graphar::graphar_shared
+    )
+    set_target_properties(duckdb_graphar_loadable_extension PROPERTIES
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON
     )
 else()
     target_link_libraries(duckdb_graphar_loadable_extension
         graphar::graphar_shared
         -Wl,--disable-new-dtags
+    )
+    set_target_properties(duckdb_graphar_loadable_extension PROPERTIES
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON
     )
 endif()
 
