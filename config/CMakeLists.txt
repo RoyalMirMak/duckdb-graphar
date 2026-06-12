@@ -29,14 +29,14 @@ endif()
 # archive's object files and creates duplicates when libduckdb.so is assembled.
 target_link_libraries(duckdb_graphar_extension)
 
-# Loadable extension: link only graphar_shared.
-# - graphar_shared already embeds or links Arrow internally
+# Loadable extension: link only graphar (static library).
+# - graphar (static) already embeds or links Arrow internally
 # - Do NOT link duckdb_static: DuckDB symbols come from host process at dlopen
 # - -Wl,--disable-new-dtags makes RPATH take precedence over LD_LIBRARY_PATH
 # - CXX_VISIBILITY_PRESET=hidden hides extension's own symbols, preventing ODR violations
 if (APPLE)
     target_link_libraries(duckdb_graphar_loadable_extension
-        graphar::graphar_shared
+        graphar::graphar
     )
     set_target_properties(duckdb_graphar_loadable_extension PROPERTIES
         CXX_VISIBILITY_PRESET hidden
@@ -44,7 +44,7 @@ if (APPLE)
     )
 else()
     target_link_libraries(duckdb_graphar_loadable_extension
-        graphar::graphar_shared
+        graphar::graphar
         -Wl,--disable-new-dtags
     )
     set_target_properties(duckdb_graphar_loadable_extension PROPERTIES
