@@ -1,5 +1,5 @@
 # =============================================
-# Build Configuration
+# Build Configuration for duckdb_graphar extension
 # =============================================
 
 # CRITICAL: EXTENSION_STATIC_BUILD must be OFF to prevent duckdb_static from being linked
@@ -12,32 +12,16 @@ if(ARROW_ROOT AND GRAPHAR_ROOT)
     # Building via Makefile (CI or local make)
     set(ARROW_INSTALL_DIR ${ARROW_ROOT})
     set(GRAPHAR_INSTALL_DIR ${GRAPHAR_ROOT})
-    # GraphAr source is in third_party/graphar/src
-    set(GRAPHAR_SOURCE_DIR ${GRAPHAR_ROOT}/../src)
 else()
     # Direct CMake build (fallback)
     set(DEPS_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps)
     set(ARROW_INSTALL_DIR ${DEPS_INSTALL_DIR}/arrow-install)
     set(GRAPHAR_INSTALL_DIR ${DEPS_INSTALL_DIR}/graphar-install)
-    set(GRAPHAR_SOURCE_DIR ${DEPS_INSTALL_DIR}/graphar-prefix/src)
 endif()
 
 # =============================================
-# Build Targets
+# Linking strategy (AFTER build, targets exist)
 # =============================================
-
-file(GLOB_RECURSE EXTENSION_SOURCES CONFIGURE_DEPENDS "${EXTENSION_ROOT_DIR}/src/*.cpp")
-
-# Build the extensions
-log_stage("Building static extension")
-build_static_extension(duckdb_graphar ${EXTENSION_SOURCES})
-log_done()
-
-log_stage("Building loadable extension")
-build_loadable_extension(duckdb_graphar ${PARAMETERS} ${EXTENSION_SOURCES})
-log_done()
-
-# ---- Linking strategy (AFTER build, targets exist) ----
 
 # Static extension: intentionally no extra link libraries here.
 # This target produces a .a archive that is later unpacked into libduckdb.so by

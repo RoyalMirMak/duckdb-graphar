@@ -16,46 +16,64 @@ if(UNIX AND NOT APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++ -static-libgcc")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
-    # -Wl,--allow-multiple-definition removed from global flags.
-    # It is now applied ONLY to the loadable extension target via target_link_options()
-    # in config/CMakeLists.txt. This prevents masking ODR violations in other targets.
 endif()
 
+# Include dependency paths set by Makefile (ARROW_ROOT, GRAPHAR_ROOT)
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/extension_deps.cmake")
     include("${CMAKE_CURRENT_SOURCE_DIR}/third_party/extension_deps.cmake")
 endif()
 
-message("My roots: ${ARROW_ROOT} ${GRAPHAR_ROOT}")
+message(STATUS "My roots: ${ARROW_ROOT} ${GRAPHAR_ROOT}")
+
+# Add paths to CMAKE_PREFIX_PATH for find_package
 if(ARROW_ROOT)
     list(APPEND CMAKE_PREFIX_PATH ${ARROW_ROOT})
 endif()
-
 if(GRAPHAR_ROOT)
     list(APPEND CMAKE_PREFIX_PATH ${GRAPHAR_ROOT})
 endif()
 
+# Find required packages
 find_package(Arrow REQUIRED CONFIG)
 find_package(ArrowDataset REQUIRED CONFIG)
 find_package(ArrowAcero REQUIRED CONFIG)
 find_package(Parquet REQUIRED CONFIG)
-
 find_package(graphar REQUIRED CONFIG)
 
-include_directories(include)
-
+# Collect extension sources
 file(GLOB_RECURSE EXTENSION_SOURCES CONFIGURE_DEPENDS "${EXTENSION_ROOT_DIR}/src/*.cpp")
 
-message(LOG "Building static extension")
+# Set include directories BEFORE building
+# This ensures GraphAr and Arrow headers are found during compilation
+include_directories(
+    ${GRAPHAR_ROOT}/include
+    ${ARROW_ROOT}/include
+    ${EXTENSION_ROOT_DIR}/include
+)
+
+# Build static extension
+message(STATUS "Building static extension")
 build_static_extension(${TARGET_NAME} ${EXTENSION_SOURCES})
 
-message(LOG "Building loadable extension")
+# Build loadable extension
+message(STATUS "Building loadable extension")
 build_loadable_extension(${TARGET_NAME} " " ${EXTENSION_SOURCES})
 
-# NOTE: Linking is handled in config/CMakeLists.txt
-# Static extension: no extra linking (just compilation)
-# Loadable extension: only graphar_shared (no duckdb_static, no Arrow::arrow_static)
-# This prevents duplicate symbol errors on Linux
+# Link libraries to loadable extension
+# Only link graphar_shared to avoid duplicate symbols
+target_link_libraries(${LOADABLE_EXTENSION_NAME} PRIVATE
+    graphar::graphar_shared
+)
 
+# Set visibility for loadable extension to hide internal symbols
+if(UNIX AND NOT APPLE)
+    set_target_properties(${LOADABLE_EXTENSION_NAME} PROPERTIES
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON
+    )
+endif()
+
+# Install static extension
 install(TARGETS ${EXTENSION_NAME}
         EXPORT "${DUCKDB_EXPORT_SET}"
         LIBRARY DESTINATION "${INSTALL_LIB_DIR}"
