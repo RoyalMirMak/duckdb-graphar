@@ -118,6 +118,9 @@ $(THIRD_PARTY_CMAKE): $(ARROW_INSTALLED) $(GRAPHAR_INSTALLED)
 	@echo 'set(ARROW_ROOT "$(ARROW_ROOT)" CACHE PATH "Path to Arrow")' > $(THIRD_PARTY_CMAKE)
 	@echo 'set(GRAPHAR_ROOT "$(GRAPHAR_ROOT)" CACHE PATH "Path to GraphAr")' >> $(THIRD_PARTY_CMAKE)
 
+# Alias target for CI/CD compatibility (allows using relative path in workflow)
+third_party/extension_deps.cmake: $(THIRD_PARTY_CMAKE)
+
 # Number of parallel jobs (default to number of processors if not set)
 NUM_JOBS ?= $(shell getconf _NPROCESSORS_ONLN)
 
