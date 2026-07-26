@@ -10,6 +10,7 @@
 #include "functions/table/read_vertices.hpp"
 #include "functions/table/two_hop.hpp"
 #include "functions/table/shortest_path.hpp"
+#include "functions/table/two_hop.hpp"
 #include "storage/graphar_storage.hpp"
 #include "utils/func.hpp"
 #include "utils/global_log_manager.hpp"
