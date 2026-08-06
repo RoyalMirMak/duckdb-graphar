@@ -8,6 +8,7 @@
 #include "functions/table/read_hop.hpp"
 #include "functions/table/read_hop_filtered.hpp"
 #include "functions/table/read_vertices.hpp"
+#include "functions/table/shortest_path.hpp"
 #include "functions/table/two_hop.hpp"
 #include "functions/table/shortest_path.hpp"
 #include "functions/table/two_hop.hpp"

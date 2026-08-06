@@ -20,9 +20,8 @@ unique_ptr<FunctionData> ShortestPath::Bind(ClientContext& context, TableFunctio
     DUCKDB_GRAPHAR_LOG_TRACE("ShortestPath::Bind");
 
     auto bind_data = make_uniq<ShortestPathBindData>();
-
-    bind_data->start_id = input.inputs[0].GetValue<int64_t>();
-    bind_data->end_id = input.inputs[1].GetValue<int64_t>();
+    bind_data->start_id = input.inputs[0].GetValue<graphar::IdType>();
+    bind_data->end_id = input.inputs[1].GetValue<graphar::IdType>();
 
     // Check if named parameters exist (new signature) or not (old signature)
     bool use_yaml_path = !input.named_parameters.empty();
@@ -52,8 +51,20 @@ unique_ptr<FunctionData> ShortestPath::Bind(ClientContext& context, TableFunctio
         }
         bind_data->edge_info = edge_info;
 
-        // Get vertex info for the source type
         auto src_vtype = edge_info->GetSrcType();
+        auto dst_vtype = edge_info->GetDstType();
+        if (src_vtype != dst_vtype) {
+            throw InvalidInputException(
+                "Shortest path requires same vertex type for source and destination. "
+                "Got src=" +
+                src_vtype + ", dst=" + dst_vtype);
+        }
+        if (!edge_info->IsDirected()) {
+            throw InvalidInputException(
+                "Shortest path algorithm only supports directed graphs. "
+                "Edge type '" +
+                edge_info->GetEdgeType() + "' is undirected.");
+        }
         bind_data->vertex_info = bind_data->graph_info->GetVertexInfo(src_vtype);
         if (!bind_data->vertex_info) {
             throw InvalidInputException("Failed to get vertex info for type: " + src_vtype);
@@ -85,6 +96,19 @@ unique_ptr<FunctionData> ShortestPath::Bind(ClientContext& context, TableFunctio
         bind_data->graph_info = table_info->GetCatalog().GetGraphInfo();
 
         auto src_type = bind_data->edge_info->GetSrcType();
+        auto dst_type = bind_data->edge_info->GetDstType();
+        if (src_type != dst_type) {
+            throw InvalidInputException(
+                "Shortest path requires same vertex type for source and destination. "
+                "Got src=" +
+                src_type + ", dst=" + dst_type);
+        }
+        if (!bind_data->edge_info->IsDirected()) {
+            throw InvalidInputException(
+                "Shortest path algorithm only supports directed graphs. "
+                "Edge type '" +
+                bind_data->edge_info->GetEdgeType() + "' is undirected.");
+        }
         bind_data->vertex_info = bind_data->graph_info->GetVertexInfo(src_type);
         if (bind_data->vertex_info == nullptr) {
             throw InvalidInputException("Failed to get vertex info for type: " + src_type);
@@ -133,19 +157,19 @@ unique_ptr<GlobalTableFunctionState> ShortestPath::InitGlobal(ClientContext& con
     global_state->forward_edges = forward_edges_result.value();
     global_state->backward_edges = backward_edges_result.value();
 
+    TypeInfoPtr vertex_type_info = bind_data.vertex_info;
+    auto vertex_count = GetCountClass::GetCount(vertex_type_info, bind_data.graph_info->GetPrefix());
+
+    if (bind_data.start_id < 0 || bind_data.end_id < 0 || bind_data.start_id >= vertex_count ||
+        bind_data.end_id >= vertex_count) {
+        global_state->path_found = false;
+        return std::move(global_state);
+    }
+
     if (bind_data.start_id == bind_data.end_id) {
         global_state->path_found = true;
         global_state->path = {bind_data.start_id};
     } else {
-        TypeInfoPtr vertex_type_info = bind_data.vertex_info;
-        auto vertex_count = GetCountClass::GetCount(vertex_type_info, bind_data.graph_info->GetPrefix());
-
-        if (bind_data.start_id < 0 || bind_data.end_id < 0 || bind_data.start_id >= vertex_count ||
-            bind_data.end_id >= vertex_count) {
-            global_state->path_found = false;
-            return std::move(global_state);
-        }
-
         // Bidirectional BFS: search from both start and end
         std::vector<bool> visited_forward(vertex_count, false);
         std::vector<bool> visited_backward(vertex_count, false);
@@ -179,7 +203,7 @@ unique_ptr<GlobalTableFunctionState> ShortestPath::InitGlobal(ClientContext& con
                 if (forward_iter != global_state->forward_edges->end()) {
                     do {
                         auto dst = forward_iter.destination();
-                        if (dst < vertex_count && !visited_forward[dst]) {
+                        if (dst >= 0 && dst < vertex_count && !visited_forward[dst]) {
                             visited_forward[dst] = true;
                             parent_forward[dst] = curr;
 
@@ -210,7 +234,7 @@ unique_ptr<GlobalTableFunctionState> ShortestPath::InitGlobal(ClientContext& con
                 if (backward_iter != global_state->backward_edges->end()) {
                     do {
                         auto src = backward_iter.source();
-                        if (src < vertex_count && !visited_backward[src]) {
+                        if (src >= 0 && src < vertex_count && !visited_backward[src]) {
                             visited_backward[src] = true;
                             parent_backward[src] = curr;
 
@@ -284,10 +308,9 @@ void ShortestPath::Function(ClientContext& context, TableFunctionInput& data_p, 
 }
 
 TableFunction ShortestPath::GetFunction() {
-    // Single signature with optional named parameters
-    // shortest_path(start_id, end_id, path_or_table)
-    // If named params (src, type, dst) are provided, path_or_table is treated as YAML path
-    // Otherwise, it's treated as table name
+    // Supports two signatures:
+    // 1. shortest_path(start_id, end_id, edge_table_name) - uses catalog lookup
+    // 2. shortest_path(start_id, end_id, graph_path, src=..., type=..., dst=...) - uses YAML path
     TableFunction func("shortest_path", {LogicalType::BIGINT, LogicalType::BIGINT, LogicalType::VARCHAR}, Function,
                        Bind, InitGlobal);
     func.named_parameters["src"] = LogicalType::VARCHAR;
