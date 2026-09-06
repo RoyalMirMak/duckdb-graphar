@@ -9,7 +9,7 @@ THIRD_PARTY_DIR=$(PROJ_DIR)third_party
 THIRD_PARTY_CMAKE=$(PROJ_DIR)third_party/extension_deps.cmake
 
 ARROW_REP=https://github.com/apache/arrow.git
-ARROW_VERSION=19.0.1
+ARROW_VERSION=23.0.0
 ARROW_DIR=$(THIRD_PARTY_DIR)/arrow
 ARROW_INSTALL_DIR=$(ARROW_DIR)/install
 ARROW_SRC_DIR=$(ARROW_DIR)/src
