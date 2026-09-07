@@ -419,7 +419,13 @@ protected:
 public:
     BasicGrapharFixture(): tmp_folder(std::filesystem::temp_directory_path() / "duckdb_graphar/data/"), db(nullptr), conn(db) {};
     ~BasicGrapharFixture(){
-        // TEMP: keep folders for inspection
-        (void)0;
+        // Clean up temporary graph folders created during the test. We use the
+        // non-throwing std::filesystem overloads (std::error_code) so that a
+        // cleanup failure does not throw from within a destructor (which would
+        // otherwise trigger std::terminate).
+        for (const auto& graph_folder : graph_folders) {
+            std::error_code ec;
+            std::filesystem::remove_all(graph_folder, ec);
+        }
     }
 };

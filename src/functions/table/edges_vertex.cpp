@@ -105,7 +105,6 @@ unique_ptr<GlobalTableFunctionState> EdgesVertexGlobalTableFunctionState::Init(C
         auto filter_index = input.column_ids[filter_id];
         auto& filter = filter_entry.Filter();
 
-        // Check if it's an expression filter
         if (filter.filter_type != TableFilterType::EXPRESSION_FILTER) {
             throw NotImplementedException("Only expression filters are supported");
         }
@@ -113,7 +112,6 @@ unique_ptr<GlobalTableFunctionState> EdgesVertexGlobalTableFunctionState::Init(C
         auto& expr_filter = ExpressionFilter::GetExpressionFilter(filter, "EdgesVertex");
         auto& expr = expr_filter.expr;
 
-        // Check if it's a comparison expression
         if (!BoundComparisonExpression::IsComparison(*expr)) {
             throw NotImplementedException("Only comparison filters are supported");
         }
@@ -123,18 +121,24 @@ unique_ptr<GlobalTableFunctionState> EdgesVertexGlobalTableFunctionState::Init(C
             throw NotImplementedException("Only equality filters are supported");
         }
 
-        // Get the right side (constant value)
+        // One side must be a column reference (the gid), the other a constant.
+        // We support both orientations: gid = 5 and 5 = gid.
+        auto& left = BoundComparisonExpression::Left(comparison);
         auto& right = BoundComparisonExpression::Right(comparison);
-        if (right.GetExpressionClass() != ExpressionClass::BOUND_CONSTANT) {
-            throw NotImplementedException("Only constant value comparisons are supported");
+        const bool left_is_constant = left.GetExpressionClass() == ExpressionClass::BOUND_CONSTANT;
+        const bool right_is_constant = right.GetExpressionClass() == ExpressionClass::BOUND_CONSTANT;
+        if (left_is_constant == right_is_constant) {
+            throw NotImplementedException("Expected exactly one constant side in equality filter");
         }
-
-        auto& constant_expr = right.Cast<BoundConstantExpression>();
-        auto filter_value = constant_expr.GetValue().ToString();
+        auto& constant_expr = (right_is_constant ? right : left).Cast<BoundConstantExpression>();
+        const auto& filter_value = constant_expr.GetValue();
 
         if (filter_index + 1 == input.column_ids.size()) {
             DUCKDB_GRAPHAR_LOG_DEBUG("Filter by gid");
-            int vid = std::stoi(filter_value);
+            // The gid column is stored as a vertex id, so it must be a numeric
+            // value. Parse it via DuckDB's Value to avoid a raw std::stoi on an
+            // unvalidated string (which could throw a non-DuckDB exception).
+            int64_t vid = filter_value.GetValue<int64_t>();
 
             iter = vid;
             end_iter = vid + 1;

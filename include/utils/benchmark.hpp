@@ -53,10 +53,8 @@ struct GraphArSettings {
         return "auto";
     }
 
-    // Decide whether a data file should be read by DuckDB's reader or Arrow's
-    // reader, based on the graphar_internal_reader_type setting and the file
-    // type. "auto" => DuckDB for parquet, Arrow otherwise. "duckdb" => always
-    // DuckDB (throws on non-parquet). "arrow" => always Arrow.
+    // Decides, per data file, whether DuckDB's reader or Arrow's reader is used.
+    // See internal_reader_type() above for the meaning of each mode.
     static bool use_duck_reader(const ClientContext& context, bool is_parquet) {
         const auto mode = internal_reader_type(context);
         if (mode == "duckdb") {

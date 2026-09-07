@@ -125,24 +125,8 @@ public:
         result = std::move(conn->Query(query, path_list_val, offset_in_chunk, count));
 
         if (result && result->HasError()) {
-            DUCKDB_GRAPHAR_LOG_DEBUG("Query error: " + result->GetError());
-            result = nullptr;
+            throw std::runtime_error("LowEdgeReaderByVertex query failed: " + result->GetError());
         }
-    }
-
-    std::vector<std::string> GetChunkPaths() {
-        auto range = GetChunkRange();
-        auto begin_chunk = range.first, end_chunk = range.second;
-        std::vector<std::string> chunks;
-        if (begin_chunk >= end_chunk) {
-            return chunks;
-        }
-        chunks.reserve(end_chunk - begin_chunk);
-        for (int chunk_index = begin_chunk; chunk_index < end_chunk; ++chunk_index) {
-            auto path = edge_info->GetAdjListFilePath(vertex_chunk_index, chunk_index, adj_list_type).value();
-            chunks.push_back(path);
-        }
-        return chunks;
     }
 
     std::pair<graphar::IdType, graphar::IdType> GetChunkRange() {

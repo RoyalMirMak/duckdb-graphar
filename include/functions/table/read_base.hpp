@@ -921,10 +921,10 @@ public:
                 const auto& fname = op_expr.Function().GetName().GetIdentifierName();
                 if (fname == "contains" || fname == "list_contains" || fname == "array_contains" ||
                     fname == "list_has" || fname == "array_has") {
-                    if (op_expr.GetChildrenMutable().size() == 2 &&
-                        op_expr.GetChildrenMutable()[0]->GetExpressionClass() == ExpressionClass::BOUND_CONSTANT) {
-                        auto& const_expr = op_expr.GetChildrenMutable()[0]->Cast<BoundConstantExpression>();
-                        auto column_name = op_expr.GetChildrenMutable()[1]->ToString();
+                    auto& children = op_expr.GetChildren();
+                    if (children.size() == 2 && children[0]->GetExpressionClass() == ExpressionClass::BOUND_CONSTANT) {
+                        auto& const_expr = children[0]->Cast<BoundConstantExpression>();
+                        auto column_name = children[1]->ToString();
                         auto& list_value = const_expr.GetValue();
 
                         if (list_value.type().id() == LogicalTypeId::LIST) {
@@ -946,12 +946,13 @@ public:
             if (!can_pushdown && filter->GetExpressionClass() == ExpressionClass::BOUND_OPERATOR &&
                 filter->GetExpressionType() == ExpressionType::COMPARE_IN) {
                 auto& op_expr = filter->Cast<BoundOperatorExpression>();
-                if (op_expr.GetChildrenMutable()[0]->GetExpressionClass() == ExpressionClass::BOUND_COLUMN_REF) {
-                    auto column_name = op_expr.GetChildrenMutable()[0]->ToString();
+                auto& children = op_expr.GetChildren();
+                if (children[0]->GetExpressionClass() == ExpressionClass::BOUND_COLUMN_REF) {
+                    auto column_name = children[0]->ToString();
                     bool any = false;
-                    for (idx_t i = 1; i < op_expr.GetChildrenMutable().size(); i++) {
-                        if (op_expr.GetChildrenMutable()[i]->GetExpressionClass() == ExpressionClass::BOUND_CONSTANT) {
-                            auto& cv = op_expr.GetChildrenMutable()[i]->Cast<BoundConstantExpression>().GetValue();
+                    for (idx_t i = 1; i < children.size(); i++) {
+                        if (children[i]->GetExpressionClass() == ExpressionClass::BOUND_CONSTANT) {
+                            auto& cv = children[i]->Cast<BoundConstantExpression>().GetValue();
                             if (validate_wrapper(column_name, cv)) any = true;
                         }
                     }
@@ -971,7 +972,7 @@ public:
                 std::vector<Value> local_vals;
                 bool valid = true;
 
-                for (auto& child : conj.GetChildrenMutable()) {
+                for (auto& child : conj.GetChildren()) {
                     if (child->GetExpressionClass() != ExpressionClass::BOUND_FUNCTION ||
                         !BoundComparisonExpression::IsComparison(*child) ||
                         child->GetExpressionType() != ExpressionType::COMPARE_EQUAL) {

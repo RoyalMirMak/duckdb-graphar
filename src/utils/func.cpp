@@ -130,6 +130,16 @@ std::shared_ptr<arrow::Table> GraphArFunctions::EmptyTableFromNamesAndTypes(cons
 std::shared_ptr<graphar::Expression> GraphArFunctions::GetFilter(const std::string& filter_type,
                                                                  const std::string& filter_value,
                                                                  const std::string& filter_column) {
+    if (filter_type == "bool") {
+        if (filter_value != "true" && filter_value != "false") {
+            throw InvalidInputException("Invalid boolean filter value: %s", filter_value);
+        }
+        return graphar::_Equal(graphar::_Property(filter_column), graphar::_Literal(filter_value == "true"));
+    }
+    // Note: graphar::_Literal has no int16 overload, so we promote to int32.
+    if (filter_type == "int16") {
+        return graphar::_Equal(graphar::_Property(filter_column), graphar::_Literal(std::stoi(filter_value)));
+    }
     if (filter_type == "int32") {
         return graphar::_Equal(graphar::_Property(filter_column), graphar::_Literal(std::stoi(filter_value)));
     }
@@ -148,7 +158,6 @@ std::shared_ptr<graphar::Expression> GraphArFunctions::GetFilter(const std::stri
     if (filter_type == "double") {
         return graphar::_Equal(graphar::_Property(filter_column), graphar::_Literal(std::stod(filter_value)));
     }
-    // TODO: bool?
 
     throw NotImplementedException("Unsupported filter type: " + filter_type);
 }
