@@ -78,33 +78,21 @@ needed, you can prevent a possible segmentation fault on exit by calling the
 `duckdb_graphar_finalize_s3()` function (registered by this extension) to explicitly
 finalize the S3 filesystem before the process ends.
 
-### Run unit tests
+### Running tests
 
-The extension has its own Catch2-based unit-test binary, `unittest_graphar`.
-It links against `duckdb_static` (plus the generated extension loader and the
-extension's static libraries), so it does not depend on symbols being exported
-from the shared `libduckdb.so`.
-
-The tests are built as part of the release/debug build (see the `ENABLE_UNIT_TESTS`
-option below). Run them with:
+The extension has two test suites, both built by default: SQL end-to-end
+[SQLLogicTests](https://duckdb.org/dev/sqllogictest/intro.html) under
+`test/sql/` (run by DuckDB's `unittest` binary), and C++ unit tests (Catch2)
+under `test/cpp/` (own `unittest_graphar` binary). Run all of them, or each
+suite separately:
 
 ```bash
-make test
+make test          # both suites
+make test-sql      # SQL tests (test/sql/)
+make test-unit     # C++ unit tests (test/cpp/)
 ```
 
-or invoke the binary directly:
-
-```bash
-./build/release/extension/duckdb_graphar/tests/unittest_graphar
-```
-
-#### Test configuration options
-
-Unit tests are enabled by default through the Makefile
-(`EXT_RELEASE_FLAGS`/`EXT_DEBUG_FLAGS` pass `-DENABLE_UNIT_TESTS=ON`).
-If you build with CMake directly and want to control this:
-
-```shell
-cmake ... -DENABLE_UNIT_TESTS=ON   # build the extension unit tests
-cmake ... -DENABLE_UNIT_TESTS=OFF  # skip the extension unit tests
-```
+When building with CMake directly, both suites are gated by two options:
+`-DBUILD_UNITTESTS` (DuckDB's own, for the SQL-test runner) and
+`-DBUILD_EXTENSION_UNIT_TESTS` (for the extension's C++ unit-test binary).
+Both default to enabled via the Makefile.

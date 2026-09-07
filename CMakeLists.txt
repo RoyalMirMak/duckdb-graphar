@@ -70,6 +70,18 @@ find_package(Parquet REQUIRED CONFIG)
 
 find_package(graphar REQUIRED CONFIG)
 
+# GraphAr's target carries `-Wl,--exclude-libs,ALL`, which would hide the
+# generated-extension-loader symbols in libduckdb.so that `unittest` needs to
+# run the SQL tests; strip just that flag (Arrow/Parquet linkage is unaffected).
+if(TARGET graphar)
+    get_target_property(_gar_link_libs graphar INTERFACE_LINK_LIBRARIES)
+    if(_gar_link_libs)
+        list(REMOVE_ITEM _gar_link_libs "-Wl,--exclude-libs,ALL")
+        set_target_properties(graphar PROPERTIES INTERFACE_LINK_LIBRARIES "${_gar_link_libs}")
+    endif()
+    unset(_gar_link_libs)
+endif()
+
 include_directories(include)
 
 # Add mini-yaml include path from GraphAr source
@@ -99,17 +111,9 @@ install(TARGETS ${EXTENSION_NAME}
         LIBRARY DESTINATION "${INSTALL_LIB_DIR}"
         ARCHIVE DESTINATION "${INSTALL_LIB_DIR}")
 
-# ---------------------------------------------------------------------------
-# Unit tests for the extension (own Catch2-based test binary `unittest_graphar`).
-# Disabled by default; enable with -DENABLE_UNIT_TESTS=ON.
-#
-# These tests link against duckdb_static + the generated extension loader +
-# the extension's static libs, so they do NOT depend on symbols being exported
-# from the shared libduckdb.so (which DuckDB's generic `unittest` would need).
-# ---------------------------------------------------------------------------
-option(ENABLE_UNIT_TESTS "Build extension unit tests" OFF)
-if(ENABLE_UNIT_TESTS)
-    # Paths used by tests/CMakeLists.txt and its subdirectories.
+# C++ unit tests (test/cpp/, own Catch2 binary `unittest_graphar`).
+option(BUILD_EXTENSION_UNIT_TESTS "Build the extension's C++ unit-test binary (test/cpp/)" OFF)
+if(BUILD_EXTENSION_UNIT_TESTS)
     # Arrow / GraphAr install roots come from the Makefile-provided ARROW_ROOT /
     # GRAPHAR_ROOT (also consumed via find_package above).
     if(NOT DEFINED ARROW_ROOT)
@@ -124,5 +128,5 @@ if(ENABLE_UNIT_TESTS)
         set(GRAPHAR_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/graphar/src")
     endif()
 
-    add_subdirectory(tests tests)
+    add_subdirectory(test/cpp test/cpp)
 endif()

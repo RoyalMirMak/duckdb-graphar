@@ -7,7 +7,7 @@ target_include_directories(test_storage PRIVATE
     ${ARROW_INSTALL_DIR}/include
     ${EXTENSION_ROOT_DIR}/include
     ${CATCH2_INCLUDE_DIRS}
-    ${EXTENSION_ROOT_DIR}/tests/fixture
+    ${EXTENSION_ROOT_DIR}/test/cpp/fixture
 )
 set(ALL_OBJECT_FILES
     ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:test_storage>

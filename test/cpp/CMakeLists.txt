@@ -1,13 +1,10 @@
-# Unit tests for the duckdb_graphar extension.
-#
-# These tests are built into a standalone Catch2 binary `unittest_graphar`.
-# They link against duckdb_static (not the shared libduckdb.so) plus the
-# generated extension loader and the extension's static libraries, so they do
-# not depend on extension-loader symbols being exported from the shared library.
+# C++ unit tests for the duckdb_graphar extension (Catch2 binary
+# `unittest_graphar`), linked against duckdb_static + the generated extension
+# loader + the extension's static libs.
 #
 # Paths (ARROW_INSTALL_DIR / GRAPHAR_INSTALL_DIR / GRAPHAR_SOURCE_DIR and the
 # duckdb source dir) are provided by the parent CMakeLists when this directory
-# is added via add_subdirectory(tests tests).
+# is added via add_subdirectory(test/cpp test/cpp).
 
 include(FetchContent)
 FetchContent_Declare(

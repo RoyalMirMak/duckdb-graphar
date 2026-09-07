@@ -34,32 +34,44 @@ GRAPHAR_ROOT=$(GRAPHAR_INSTALL_DIR)
 # Include the Makefile from extension-ci-tools
 include extension-ci-tools/makefiles/duckdb_extension.Makefile
 
-# ---------------------------------------------------------------------------
-# Unit tests
-#
-# The extension has its own Catch2-based test binary `unittest_graphar` which
-# links against duckdb_static (so it does not need extension-loader symbols to
-# be exported from libduckdb.so). We build it via ENABLE_UNIT_TESTS=ON.
-#
-# DuckDB's generic `unittest` (built when BUILD_UNITTESTS=TRUE) links against
-# the shared libduckdb.so and fails to link in this configuration because the
-# extension-loader symbols are not exported from the shared library, so we
-# disable it (BUILD_UNITTESTS=FALSE) and run our own binary instead.
-# ---------------------------------------------------------------------------
-EXT_RELEASE_FLAGS += -DENABLE_UNIT_TESTS=ON -DBUILD_UNITTESTS=FALSE
-EXT_DEBUG_FLAGS += -DENABLE_UNIT_TESTS=ON -DBUILD_UNITTESTS=FALSE
+# Two test suites: SQL (test/sql/, via DuckDB's `unittest`) and C++ unit tests
+# (test/cpp/, own binary `unittest_graphar`). Both are built by default.
+EXT_RELEASE_FLAGS += -DBUILD_EXTENSION_UNIT_TESTS=ON -DBUILD_UNITTESTS=TRUE
+EXT_DEBUG_FLAGS += -DBUILD_EXTENSION_UNIT_TESTS=ON -DBUILD_UNITTESTS=TRUE
 
-# Override the generic duckdb test runner with the extension's own binary.
-# The binary is placed under build/<config>/extension/duckdb_graphar/tests/
-# because tests/ is added as a subdirectory of the extension.
+# `make test` runs both suites (overrides extension-ci-tools' generic runner).
+.PHONY: test_release_internal test_debug_internal test_reldebug_internal
 test_release_internal:
-	./build/release/extension/duckdb_graphar/tests/unittest_graphar
+	$(MAKE) test-sql-release
+	$(MAKE) test-unit-release
 
 test_debug_internal:
-	./build/debug/extension/duckdb_graphar/tests/unittest_graphar
+	$(MAKE) test-sql-debug
+	$(MAKE) test-unit-debug
 
 test_reldebug_internal:
-	./build/reldebug/extension/duckdb_graphar/tests/unittest_graphar
+	$(MAKE) test-sql-reldebug
+	$(MAKE) test-unit-reldebug
+
+# SQL tests via DuckDB's own unittest binary.
+.PHONY: test-sql test-sql-release test-sql-debug test-sql-reldebug
+test-sql: test-sql-release
+test-sql-release:
+	./build/release/test/unittest "[graphar]"
+test-sql-debug:
+	./build/debug/test/unittest "[graphar]"
+test-sql-reldebug:
+	./build/reldebug/test/unittest "[graphar]"
+
+# C++ unit tests of the extension.
+.PHONY: test-unit test-unit-release test-unit-debug test-unit-reldebug
+test-unit: test-unit-release
+test-unit-release:
+	./build/release/extension/duckdb_graphar/test/cpp/unittest_graphar
+test-unit-debug:
+	./build/debug/extension/duckdb_graphar/test/cpp/unittest_graphar
+test-unit-reldebug:
+	./build/reldebug/extension/duckdb_graphar/test/cpp/unittest_graphar
 
 $(ARROW_CLONED):
 	@echo "Clone Apache Arrow"
