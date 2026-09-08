@@ -897,11 +897,11 @@ public:
                     bool left_is_scalar = left.IsFoldable();
                     bool right_is_scalar = right.IsFoldable();
                     if (left_is_scalar || right_is_scalar) {
-                        auto column_name = left.ToString();
+                        bool column_on_left = left.GetExpressionClass() == ExpressionClass::BOUND_COLUMN_REF;
+                        auto column_name = column_on_left ? left.ToString() : right.ToString();
                         Value val;
 
-                        auto& scalar_expr =
-                            (left.GetExpressionClass() == ExpressionClass::BOUND_COLUMN_REF) ? right : left;
+                        auto& scalar_expr = column_on_left ? right : left;
 
                         if (!ExpressionExecutor::TryEvaluateScalar(context, scalar_expr, val)) {
                             continue;
