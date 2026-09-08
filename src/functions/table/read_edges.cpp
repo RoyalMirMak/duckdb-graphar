@@ -282,7 +282,7 @@ TableFunction ReadEdges::GetFunction() {
 // GetScanFunction
 //-------------------------------------------------------------------
 TableFunction ReadEdges::GetScanFunction() {
-    TableFunction read_edges("", {LogicalType::VARCHAR}, Execute, Bind);
+    TableFunction read_edges("", {}, Execute, Bind);
     InitFunction(read_edges);
 
     return read_edges;

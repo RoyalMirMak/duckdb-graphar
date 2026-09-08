@@ -16,6 +16,7 @@ CMAKE_ARGS=(
   --config-settings=cmake.define.Parquet_DIR="$ARROW_INSTALL_DIR/lib/cmake/Parquet"
   --config-settings=cmake.define.ArrowDataset_DIR="$ARROW_INSTALL_DIR/lib/cmake/ArrowDataset"
   --config-settings=cmake.define.ArrowAcero_DIR="$ARROW_INSTALL_DIR/lib/cmake/ArrowAcero"
+  --config-settings=cmake.define.ArrowCompute_DIR="$ARROW_INSTALL_DIR/lib/cmake/ArrowCompute"
   --config-settings=cmake.define.Protobuf_INCLUDE_DIR="$PROTOBUF_INSTALL_DIR"
   --config-settings=cmake.define.Protobuf_LIBRARIES="$ARROW_BUILD_DIR/_deps/protobuf-build/libprotobuf.a"
 

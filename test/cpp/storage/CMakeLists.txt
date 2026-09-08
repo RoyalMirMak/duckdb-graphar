@@ -1,5 +1,5 @@
 # Storage tests for the duckdb_graphar extension.
-add_library_unity(test_storage OBJECT test_graphar_storage.cpp)
+add_library_unity(test_storage OBJECT test_graphar_storage.cpp test_graphar_schema_entry.cpp)
 add_dependencies(test_storage graphar)
 target_include_directories(test_storage PRIVATE
     ${GRAPHAR_INSTALL_DIR}/include

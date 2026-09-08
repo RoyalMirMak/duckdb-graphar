@@ -33,6 +33,7 @@ set(EXTENSION_INCLUDES
 
 add_subdirectory(table_functions)
 add_subdirectory(scalar_functions)
+add_subdirectory(storage)
 
 add_executable(unittest_graphar ${ALL_OBJECT_FILES})
 

@@ -213,7 +213,7 @@ TableFunction ReadVertices::GetFunction() {
 // GetScanFunction
 //-------------------------------------------------------------------
 TableFunction ReadVertices::GetScanFunction() {
-    TableFunction read_vertices("", {LogicalType::VARCHAR}, Execute, Bind);
+    TableFunction read_vertices("", {}, Execute, Bind);
     InitFunction(read_vertices);
 
     return read_vertices;

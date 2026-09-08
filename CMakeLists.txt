@@ -31,7 +31,13 @@ string(TIMESTAMP BUILD_TIMESTAMP "%Y-%m-%d %H:%M:%S%z")
 
 # Add compile definitions for version information
 add_definitions(-DEXTENSION_GIT_COMMIT_HASH="${EXTENSION_GIT_COMMIT_HASH}")
-add_definitions(-DEXTENSION_BUILD_TIMESTAMP="${BUILD_TIMESTAMP}")
+
+# Only graphar_info.cpp exposes build metadata, so scope the ever-changing
+# timestamp to that file; a global define would recompile every source on
+# each configure.
+set_source_files_properties(
+    ${EXTENSION_ROOT_DIR}/src/functions/table/graphar_info.cpp
+    PROPERTIES COMPILE_DEFINITIONS EXTENSION_BUILD_TIMESTAMP="${BUILD_TIMESTAMP}")
 
 # Print version information during configuration
 message(STATUS "Extension Git Commit: ${EXTENSION_GIT_COMMIT_HASH}")

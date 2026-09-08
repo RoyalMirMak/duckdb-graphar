@@ -105,7 +105,7 @@ public:
         vector<Value> paths_val;
         paths_val.reserve(end_chunk - begin_chunk);
 
-        for (int chunk_index = begin_chunk; chunk_index < end_chunk; ++chunk_index) {
+        for (graphar::IdType chunk_index = begin_chunk; chunk_index < end_chunk; ++chunk_index) {
             auto path = edge_info->GetAdjListFilePath(vertex_chunk_index, chunk_index, adj_list_type).value();
             std::string full_path = duckdb_prefix + path;
             paths_val.emplace_back(full_path);

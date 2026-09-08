@@ -1,6 +1,10 @@
 export CMAKE_POLICY_VERSION_MINIMUM=3.5
 PROJ_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
+# cmake --build uses make's -j (deferred eval: MAKEFLAGS is set at run time).
+MAKE_JOBS = $(if $(shell echo "$(MAKEFLAGS)" | sed -n 's/.*-j *\([0-9][0-9]*\).*/\1/p' | head -1),$(shell echo "$(MAKEFLAGS)" | sed -n 's/.*-j *\([0-9][0-9]*\).*/\1/p' | head -1),$(shell getconf _NPROCESSORS_ONLN))
+export CMAKE_BUILD_PARALLEL_LEVEL = $(MAKE_JOBS)
+
 # Configuration of extension
 EXT_NAME=graphar_duck
 EXT_CONFIG=${PROJ_DIR}extension_config.cmake
@@ -158,5 +162,18 @@ $(THIRD_PARTY_CMAKE): $(ARROW_INSTALLED) $(GRAPHAR_INSTALLED)
 	@echo 'set(GRAPHAR_ROOT "$(GRAPHAR_ROOT)" CACHE PATH "Path to GraphAr")' >> $(THIRD_PARTY_CMAKE)
 
 configure_ci: $(THIRD_PARTY_CMAKE)
-release: $(THIRD_PARTY_CMAKE)
-debug: $(THIRD_PARTY_CMAKE)
+
+# Override extension-ci-tools' release/debug: configure only once (no
+# CMakeCache) so a per-build reconfigure doesn't force a full recompile.
+.PHONY: release debug
+release: $(THIRD_PARTY_CMAKE) $(EXTENSION_CONFIG_STEP)
+	mkdir -p build/release
+	@test -f build/release/CMakeCache.txt || cmake $(GENERATOR) $(BUILD_FLAGS) $(EXT_RELEASE_FLAGS) $(VCPKG_MANIFEST_FLAGS) -DCMAKE_BUILD_TYPE=Release -S $(DUCKDB_SRCDIR) -B build/release
+	cmake --build build/release --config Release
+
+debug: $(THIRD_PARTY_CMAKE) $(EXTENSION_CONFIG_STEP)
+	mkdir -p build/debug
+	@test -f build/debug/CMakeCache.txt || cmake $(GENERATOR) $(BUILD_FLAGS) $(EXT_DEBUG_FLAGS) $(VCPKG_MANIFEST_FLAGS) -DCMAKE_BUILD_TYPE=Debug -S $(DUCKDB_SRCDIR) -B build/debug
+	cmake --build build/debug --config Debug
+
+
