@@ -32,3 +32,11 @@ query I
 SELECT COUNT(*) FROM two_hop('Person_knows_Person', vids=[1, 10]);
 ----
 18247
+
+# Regression test: an explicit 'catalog' name must be honored (see read_hop.test
+# for details). A nonexistent catalog must error, not silently fall back to the
+# default catalog.
+statement error
+SELECT COUNT(*) FROM two_hop('Person_knows_Person', catalog='nonexistent_db', vid=10);
+----
+Binder Error: Catalog "nonexistent_db" does not exist!

@@ -32,3 +32,12 @@ query I
 SELECT COUNT(*) FROM read_hop('Person_knows_Person', vids=[1, 10]);
 ----
 18247
+
+# Regression test: an explicit 'catalog' name must be honored. Before the fix,
+# SetBindDataByEdgeTable looked up Catalog::GetCatalog(empty identifier), which
+# resolved to the default catalog and silently ignored the requested catalog
+# name -- so a nonexistent catalog would (incorrectly) succeed. It must error.
+statement error
+SELECT COUNT(*) FROM read_hop('Person_knows_Person', catalog='nonexistent_db', vid=10);
+----
+Binder Error: Catalog "nonexistent_db" does not exist!
