@@ -62,7 +62,21 @@ directory to query its vertex/edge tables:
 ./build/release/duckdb -c "attach '/path/to/Graph.yaml' (type duckdb_graphar); select * from person limit 20;"
 ```
 
-Example data is available under `data/` (e.g. `data/snap-musae-github/graphar/Git.graph.yaml`).
+The `data/` directory is not tracked in full; the source datasets under
+`data/snap-musae-github/` and `data/snap-musae-github-csv/` must be converted to
+GraphAr format before use. This is done by the same scripts the CI pipeline
+runs:
+
+```bash
+# Install the GraphAr CLI (builds against the locally built arrow/graphar)
+./scripts/install-cli.sh
+
+# Generate the GraphAr graphs into data/<graph>/graphar/ (e.g. Git.graph.yaml)
+./scripts/generate-graphar-data.sh
+```
+
+After running these, example graphs are available under
+`data/<graph>/graphar/` (e.g. `data/snap-musae-github/graphar/Git.graph.yaml`).
 
 ### S3 warning note
 
