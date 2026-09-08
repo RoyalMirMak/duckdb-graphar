@@ -32,6 +32,12 @@ GraphArSchemaEntry &AttachAndGetMainSchema(DuckDB &duck_db, Connection &con, con
     auto attach_result = con.Query("ATTACH '" + graph_path + "' as test_db (type duckdb_graphar);");
     REQUIRE(!attach_result->HasError());
 
+    // The ATTACH statement runs and auto-commits in its own transaction, leaving
+    // the connection in autocommit mode with no active transaction. Catalog
+    // lookups (DatabaseManager::GetDatabase / Catalog::GetCatalogTransaction)
+    // require an active transaction, so we start one explicitly.
+    con.BeginTransaction();
+
     auto db = DatabaseManager::Get(*con.context->db).GetDatabase(*con.context, "test_db");
     REQUIRE(db);
     auto &graphar_catalog = db->GetCatalog().Cast<GraphArCatalog>();
@@ -75,6 +81,8 @@ TEST_CASE("Test GraphArSchemaEntry mutation methods throw", "[graphar_schema]") 
     drop_info.type = CatalogType::SCHEMA_ENTRY;
     drop_info.SetName("test_schema");
     REQUIRE_THROWS_AS(schema.DropEntry(*con.context, drop_info), NotImplementedException);
+
+    con.Commit();
 }
 
 // The schema exposes the graph's tables (e.g. the Person vertex table).
@@ -91,4 +99,6 @@ TEST_CASE("Test GraphArSchemaEntry exposes graph tables", "[graphar_schema]") {
         }
     });
     REQUIRE(found);
+
+    con.Commit();
 }
