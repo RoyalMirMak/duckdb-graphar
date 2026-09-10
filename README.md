@@ -87,8 +87,7 @@ arrow::fs::FinalizeS3 was not called even though S3 was initialized. This could
 lead to a segmentation fault at exit
 ```
 
-This is a **known harmless** issue — it is not a bug. However, if
-needed, you can prevent a possible segmentation fault on exit by calling the
+To avoid a possible segmentation fault on exit, call the
 `duckdb_graphar_finalize_s3()` function (registered by this extension) to explicitly
 finalize the S3 filesystem before the process ends.
 

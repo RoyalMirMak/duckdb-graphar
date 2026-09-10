@@ -54,5 +54,9 @@ target_include_directories(unittest_graphar PRIVATE
     ${EXTENSION_INCLUDES}
 )
 
-# Integrate with ctest for easy test execution.
-add_test(NAME ${DUCKDB_EXTENSION_NAME}_unittest COMMAND unittest_graphar)
+# Integrate with ctest for easy test execution. ctest runs tests from the build
+# directory by default, but the storage tests reference fixture data with paths
+# relative to the repository root (e.g. data/snap-musae-github/...), so run from
+# the extension root directory.
+add_test(NAME ${DUCKDB_EXTENSION_NAME}_unittest COMMAND unittest_graphar
+         WORKING_DIRECTORY "${EXTENSION_ROOT_DIR}")

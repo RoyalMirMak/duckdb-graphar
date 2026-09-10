@@ -66,7 +66,14 @@ public:
             auto maybe_edge_chunk_num =
                 graphar::util::GetEdgeChunkNum(original_prefix, edge_info, adj_list_type, vertex_chunk_index);
 
-            if (!maybe_edge_chunk_num.has_value() || maybe_edge_chunk_num.value() <= 0) {
+            // Distinguish an error from a legitimate "no edges in this vertex
+            // chunk" result (value <= 0): an error must be surfaced, not
+            // silently swallowed as an empty result.
+            if (!maybe_edge_chunk_num.has_value()) {
+                throw std::runtime_error("LowEdgeReaderByVertex failed to get edge chunk num: " +
+                                         maybe_edge_chunk_num.status().message());
+            }
+            if (maybe_edge_chunk_num.value() <= 0) {
                 DUCKDB_GRAPHAR_LOG_DEBUG("No edge chunks found for vertex chunk " + std::to_string(vertex_chunk_index));
                 cached_edge_chunk_num = 0;
                 cached_vertex_chunk_index = vertex_chunk_index;

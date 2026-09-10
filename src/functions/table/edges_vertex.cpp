@@ -130,6 +130,10 @@ unique_ptr<GlobalTableFunctionState> EdgesVertexGlobalTableFunctionState::Init(C
         if (left_is_constant == right_is_constant) {
             throw NotImplementedException("Expected exactly one constant side in equality filter");
         }
+        auto& column_expr = (right_is_constant ? left : right);
+        if (column_expr.GetExpressionClass() != ExpressionClass::BOUND_COLUMN_REF) {
+            throw NotImplementedException("Only column = constant filters are supported");
+        }
         auto& constant_expr = (right_is_constant ? right : left).Cast<BoundConstantExpression>();
         const auto& filter_value = constant_expr.GetValue();
 

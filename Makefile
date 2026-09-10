@@ -163,17 +163,20 @@ $(THIRD_PARTY_CMAKE): $(ARROW_INSTALLED) $(GRAPHAR_INSTALLED)
 
 configure_ci: $(THIRD_PARTY_CMAKE)
 
-# Override extension-ci-tools' release/debug: configure only once (no
-# CMakeCache) so a per-build reconfigure doesn't force a full recompile.
+# Override extension-ci-tools' release/debug. We configure only once (guarded
+# by the CMakeCache) to avoid a forced full recompile, but always re-run cmake
+# on an existing build so CMake performs an incremental configure and refreshes
+# the ever-changing EXTENSION_GIT_COMMIT_HASH / EXTENSION_BUILD_TIMESTAMP when
+# new sources are picked up.
 .PHONY: release debug
 release: $(THIRD_PARTY_CMAKE) $(EXTENSION_CONFIG_STEP)
 	mkdir -p build/release
 	@test -f build/release/CMakeCache.txt || cmake $(GENERATOR) $(BUILD_FLAGS) $(EXT_RELEASE_FLAGS) $(VCPKG_MANIFEST_FLAGS) -DCMAKE_BUILD_TYPE=Release -S $(DUCKDB_SRCDIR) -B build/release
+	cmake -S $(DUCKDB_SRCDIR) -B build/release
 	cmake --build build/release --config Release
 
 debug: $(THIRD_PARTY_CMAKE) $(EXTENSION_CONFIG_STEP)
 	mkdir -p build/debug
 	@test -f build/debug/CMakeCache.txt || cmake $(GENERATOR) $(BUILD_FLAGS) $(EXT_DEBUG_FLAGS) $(VCPKG_MANIFEST_FLAGS) -DCMAKE_BUILD_TYPE=Debug -S $(DUCKDB_SRCDIR) -B build/debug
+	cmake -S $(DUCKDB_SRCDIR) -B build/debug
 	cmake --build build/debug --config Debug
-
-
