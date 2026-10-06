@@ -1,21 +1,15 @@
 require duckdb_graphar
 
-statement ok
-SET autoinstall_known_extensions=1;
+require parquet
 
-statement ok
-SET autoload_known_extensions=1;
-
-statement ok
-LOAD parquet;
 
 query I
-SELECT COUNT(*) FROM read_vertices('{WORKING_DIRECTORY}/data/snap-musae-github/graphar/Git.graph.yaml', type='Person');
+SELECT COUNT(*) FROM read_vertices('__WORKING_DIRECTORY__/data/snap-musae-github/graphar/Git.graph.yaml', type='Person');
 ----
 37700
 
 query IIIIII
-SELECT * FROM read_vertices('{WORKING_DIRECTORY}/data/snap-musae-github/graphar/Git.graph.yaml', type='Person') WHERE _grapharVertexIndex=0;
+SELECT * FROM read_vertices('__WORKING_DIRECTORY__/data/snap-musae-github/graphar/Git.graph.yaml', type='Person') WHERE _grapharVertexIndex=0;
 ----
 0
 0
@@ -25,7 +19,7 @@ false
 0
 
 statement ok
-ATTACH '{WORKING_DIRECTORY}/data/snap-musae-github/graphar/Git.graph.yaml' as test_db (type duckdb_graphar);
+ATTACH '__WORKING_DIRECTORY__/data/snap-musae-github/graphar/Git.graph.yaml' as test_db (type duckdb_graphar);
 
 query I
 SELECT id FROM 'Person' LIMIT 4;
@@ -63,6 +57,6 @@ SELECT COUNT(*) FROM 'Person' WHERE _graphArVertexIndex IN [100, 11, 5];
 
 # IN with a non-constant RHS member keeps the whole filter (id == vertex index for all rows).
 query I
-SELECT COUNT(*) FROM read_vertices('{WORKING_DIRECTORY}/data/snap-musae-github/graphar/Git.graph.yaml', type='Person') WHERE _graphArVertexIndex IN (0, id);
+SELECT COUNT(*) FROM read_vertices('__WORKING_DIRECTORY__/data/snap-musae-github/graphar/Git.graph.yaml', type='Person') WHERE _graphArVertexIndex IN (0, id);
 ----
 37700

@@ -36,7 +36,7 @@ void ReadVertices::SetBindData(std::shared_ptr<graphar::GraphInfo> graph_info,
 // Bind
 //-------------------------------------------------------------------
 unique_ptr<FunctionData> ReadVertices::Bind(ClientContext& context, TableFunctionBindInput& input,
-                                            vector<LogicalType>& return_types, vector<Identifier>& names) {
+                                            vector<LogicalType>& return_types, vector<string>& names) {
     bool time_logging = GraphArSettings::is_time_logging(context);
 
     ScopedTimer t("Bind");
@@ -66,7 +66,7 @@ unique_ptr<FunctionData> ReadVertices::Bind(ClientContext& context, TableFunctio
     SetBindData(graph_info, vertex_info, bind_data);
     bind_data->SetTableName(file_path);
 
-    names = StringsToIdentifiers(bind_data->flatten_prop_names);
+    names = bind_data->flatten_prop_names;
     std::transform(bind_data->flatten_prop_types.begin(), bind_data->flatten_prop_types.end(),
                    std::back_inserter(return_types),
                    [](const auto& return_type) { return GraphArFunctions::graphArT2duckT(return_type); });
@@ -213,7 +213,7 @@ static void InitFunction(TableFunction& read_vertices) {
 // GetFunction
 //-------------------------------------------------------------------
 TableFunction ReadVertices::GetFunction() {
-    TableFunction read_vertices(Identifier(GetFunctionName()), {LogicalType::VARCHAR}, Execute, Bind);
+    TableFunction read_vertices(GetFunctionName(), {LogicalType::VARCHAR}, Execute, Bind);
     InitFunction(read_vertices);
 
     read_vertices.named_parameters["type"] = LogicalType::VARCHAR;
@@ -224,7 +224,7 @@ TableFunction ReadVertices::GetFunction() {
 // GetScanFunction
 //-------------------------------------------------------------------
 TableFunction ReadVertices::GetScanFunction() {
-    TableFunction read_vertices("", {}, Execute, Bind);
+    TableFunction read_vertices({}, Execute, Bind);
     InitFunction(read_vertices);
 
     return read_vertices;

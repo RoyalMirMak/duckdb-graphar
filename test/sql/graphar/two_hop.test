@@ -1,38 +1,32 @@
 require duckdb_graphar
 
-statement ok
-SET autoinstall_known_extensions=1;
+require parquet
 
-statement ok
-SET autoload_known_extensions=1;
-
-statement ok
-LOAD parquet;
 
 query I
-SELECT COUNT(*) FROM two_hop('{WORKING_DIRECTORY}/data/snap-musae-github/graphar/Git.graph.yaml', src='Person', type='knows', dst='Person', vid=10);
+SELECT COUNT(*) FROM two_hop('__WORKING_DIRECTORY__/data/snap-musae-github/graphar/Git.graph.yaml', src='Person', type='knows', dst='Person', vid=10);
 ----
 17457
 
 query I
-SELECT COUNT(*) FROM two_hop('{WORKING_DIRECTORY}/data/snap-musae-github/graphar/Git.graph.yaml', src='Person', type='knows', dst='Person', vids=[1, 10]);
+SELECT COUNT(*) FROM two_hop('__WORKING_DIRECTORY__/data/snap-musae-github/graphar/Git.graph.yaml', src='Person', type='knows', dst='Person', vids=[1, 10]);
 ----
 18247
 
 # Direct EdgeInfo.yaml path (no src/type/dst) must be routed to path mode
 query I
-SELECT COUNT(*) FROM two_hop('{WORKING_DIRECTORY}/data/snap-musae-github/graphar/Person_knows_Person.edge.yaml', vid=10);
+SELECT COUNT(*) FROM two_hop('__WORKING_DIRECTORY__/data/snap-musae-github/graphar/Person_knows_Person.edge.yaml', vid=10);
 ----
 17457
 
 query I
-SELECT COUNT(*) FROM two_hop('{WORKING_DIRECTORY}/data/snap-musae-github/graphar/Person_knows_Person.edge.yaml', vids=[1, 10]);
+SELECT COUNT(*) FROM two_hop('__WORKING_DIRECTORY__/data/snap-musae-github/graphar/Person_knows_Person.edge.yaml', vids=[1, 10]);
 ----
 18247
 
 
 statement ok
-ATTACH '{WORKING_DIRECTORY}/data/snap-musae-github/graphar/Git.graph.yaml' as git(type duckdb_graphar);
+ATTACH '__WORKING_DIRECTORY__/data/snap-musae-github/graphar/Git.graph.yaml' as git(type duckdb_graphar);
 
 query I
 SELECT COUNT(*) FROM two_hop('Person_knows_Person', vid=10);
@@ -55,12 +49,12 @@ Binder Error: Catalog "nonexistent_db" does not exist!
 # A GraphInfo.yaml passed as a direct edge path must produce a clear error,
 # not a segmentation fault.
 statement error
-SELECT * FROM two_hop('{WORKING_DIRECTORY}/data/snap-musae-github/graphar/Git.graph.yaml', vid=10);
+SELECT * FROM two_hop('__WORKING_DIRECTORY__/data/snap-musae-github/graphar/Git.graph.yaml', vid=10);
 ----
 Could not load edge info from path
 
 # A nonexistent edge path must produce a clear IO error, not a crash.
 statement error
-SELECT * FROM two_hop('{WORKING_DIRECTORY}/data/snap-musae-github/graphar/nonexistent.edge.yml', vid=10);
+SELECT * FROM two_hop('__WORKING_DIRECTORY__/data/snap-musae-github/graphar/nonexistent.edge.yml', vid=10);
 ----
 Failed to read edge info from path

@@ -38,9 +38,8 @@ TableFunction GraphArTableEntry::GetScanFunction(ClientContext& context, unique_
     auto tmp_table_info = table_info.lock();
     const auto graph_info = tmp_table_info->GetCatalog().GetGraphInfo();
     const auto& type_info = tmp_table_info->GetTypeInfo();
-    bind_data_->SetTableName(tmp_table_info->GetCatalog().GetName().GetIdentifierName() + "." +
-                             ParentSchema().name.GetIdentifierName() + "." +
-                             tmp_table_info->GetEntry().name.GetIdentifierName());
+    bind_data_->SetTableName(tmp_table_info->GetCatalog().GetName() + "." + ParentSchema().name + "." +
+                             tmp_table_info->GetEntry().name);
     if (std::holds_alternative<std::shared_ptr<graphar::VertexInfo>>(type_info)) {
         const auto& vertex_info = std::get<std::shared_ptr<graphar::VertexInfo>>(type_info);
         ReadVertices::SetBindData(graph_info, vertex_info, bind_data_);

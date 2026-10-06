@@ -35,7 +35,7 @@ void ReadEdges::SetBindData(std::shared_ptr<graphar::GraphInfo> graph_info,
 // Bind
 //-------------------------------------------------------------------
 unique_ptr<FunctionData> ReadEdges::Bind(ClientContext& context, TableFunctionBindInput& input,
-                                         vector<LogicalType>& return_types, vector<Identifier>& names) {
+                                         vector<LogicalType>& return_types, vector<string>& names) {
     bool time_logging = GraphArSettings::is_time_logging(context);
 
     ScopedTimer t("Bind");
@@ -67,7 +67,7 @@ unique_ptr<FunctionData> ReadEdges::Bind(ClientContext& context, TableFunctionBi
     SetBindData(graph_info, edge_info, bind_data);
     bind_data->SetTableName(file_path);
 
-    names = StringsToIdentifiers(bind_data->flatten_prop_names);
+    names = bind_data->flatten_prop_names;
     std::transform(bind_data->flatten_prop_types.begin(), bind_data->flatten_prop_types.end(),
                    std::back_inserter(return_types),
                    [](const auto& return_type) { return GraphArFunctions::graphArT2duckT(return_type); });
@@ -280,7 +280,7 @@ static void InitFunction(TableFunction& read_edges) {
 // GetFunction
 //-------------------------------------------------------------------
 TableFunction ReadEdges::GetFunction() {
-    TableFunction read_edges(Identifier(GetFunctionName()), {LogicalType::VARCHAR}, Execute, Bind);
+    TableFunction read_edges(GetFunctionName(), {LogicalType::VARCHAR}, Execute, Bind);
     InitFunction(read_edges);
 
     read_edges.named_parameters["src"] = LogicalType::VARCHAR;
@@ -293,7 +293,7 @@ TableFunction ReadEdges::GetFunction() {
 // GetScanFunction
 //-------------------------------------------------------------------
 TableFunction ReadEdges::GetScanFunction() {
-    TableFunction read_edges("", {}, Execute, Bind);
+    TableFunction read_edges({}, Execute, Bind);
     InitFunction(read_edges);
 
     return read_edges;

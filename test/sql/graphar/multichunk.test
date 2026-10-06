@@ -1,13 +1,7 @@
 require duckdb_graphar
 
-statement ok
-SET autoinstall_known_extensions=1;
+require parquet
 
-statement ok
-SET autoload_known_extensions=1;
-
-statement ok
-LOAD parquet;
 
 # =============================================================================
 # GitMultichunk: a small multichunk graph derived from snap-musae-github.
@@ -29,7 +23,7 @@ LOAD parquet;
 # Attach + basic counts
 # -----------------------------------------------------------------------------
 statement ok
-ATTACH '{WORKING_DIRECTORY}/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml' as mchunk (type duckdb_graphar);
+ATTACH '__WORKING_DIRECTORY__/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml' as mchunk (type duckdb_graphar);
 
 query I
 SELECT name from (SHOW ALL TABLES) ORDER BY name;
@@ -51,7 +45,7 @@ SELECT COUNT(*) FROM Person_knows_Person;
 # read_vertices across chunk boundaries
 # -----------------------------------------------------------------------------
 query I
-SELECT COUNT(*) FROM read_vertices('{WORKING_DIRECTORY}/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', type='Person');
+SELECT COUNT(*) FROM read_vertices('__WORKING_DIRECTORY__/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', type='Person');
 ----
 3789
 
@@ -82,7 +76,7 @@ SELECT COUNT(*) FROM Person WHERE _graphArVertexIndex IN (0, 63, 64, 127, 128, 3
 # read_edges / Person_knows_Person across chunk boundaries
 # -----------------------------------------------------------------------------
 query I
-SELECT COUNT(*) FROM read_edges('{WORKING_DIRECTORY}/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', src='Person', type='knows', dst='Person');
+SELECT COUNT(*) FROM read_edges('__WORKING_DIRECTORY__/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', src='Person', type='knows', dst='Person');
 ----
 2560
 
@@ -127,7 +121,7 @@ SELECT COUNT(*) FROM Person_knows_Person WHERE _graphArSrcIndex IN (63, 64, 65);
 # degree() across chunk boundaries
 # -----------------------------------------------------------------------------
 query III
-SELECT * FROM degree('{WORKING_DIRECTORY}/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', src='Person', type='knows', dst='Person') WHERE _graphArVertexIndex IN (0, 6, 64, 2861) ORDER BY _graphArVertexIndex;
+SELECT * FROM degree('__WORKING_DIRECTORY__/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', src='Person', type='knows', dst='Person') WHERE _graphArVertexIndex IN (0, 6, 64, 2861) ORDER BY _graphArVertexIndex;
 ----
 0	1	0
 6	4	0
@@ -138,12 +132,12 @@ SELECT * FROM degree('{WORKING_DIRECTORY}/data/snap-musae-github-multichunk/grap
 # sparse (edge_count 2560 < vertex_count 3789), so most vertices have no edges
 # and the maxima are driven by the few high-degree vertices.
 query I
-SELECT max(out_degree) FROM degree('{WORKING_DIRECTORY}/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', src='Person', type='knows', dst='Person');
+SELECT max(out_degree) FROM degree('__WORKING_DIRECTORY__/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', src='Person', type='knows', dst='Person');
 ----
 79
 
 query I
-SELECT max(in_degree) FROM degree('{WORKING_DIRECTORY}/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', src='Person', type='knows', dst='Person');
+SELECT max(in_degree) FROM degree('__WORKING_DIRECTORY__/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', src='Person', type='knows', dst='Person');
 ----
 122
 
@@ -168,7 +162,7 @@ SELECT COUNT(*) FROM Person_knows_Person WHERE _graphArDstIndex=3700;
 # read_hop across chunk boundaries (single start vertex with no outgoing edges)
 # -----------------------------------------------------------------------------
 query I
-SELECT COUNT(*) FROM read_hop('{WORKING_DIRECTORY}/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', src='Person', type='knows', dst='Person', vid=0);
+SELECT COUNT(*) FROM read_hop('__WORKING_DIRECTORY__/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', src='Person', type='knows', dst='Person', vid=0);
 ----
 1
 
@@ -181,16 +175,16 @@ SELECT COUNT(*) FROM read_hop('{WORKING_DIRECTORY}/data/snap-musae-github-multic
 # which graphs were queried earlier.
 # -----------------------------------------------------------------------------
 statement ok
-ATTACH '{WORKING_DIRECTORY}/data/snap-musae-github/graphar/Git.graph.yaml' as big (type duckdb_graphar);
+ATTACH '__WORKING_DIRECTORY__/data/snap-musae-github/graphar/Git.graph.yaml' as big (type duckdb_graphar);
 
 query I
-SELECT max(out_degree) FROM degree('{WORKING_DIRECTORY}/data/snap-musae-github/graphar/Git.graph.yaml', src='Person', type='knows', dst='Person');
+SELECT max(out_degree) FROM degree('__WORKING_DIRECTORY__/data/snap-musae-github/graphar/Git.graph.yaml', src='Person', type='knows', dst='Person');
 ----
 6809
 
 # After querying the big graph, the multichunk counts must still be correct.
 query I
-SELECT max(out_degree) FROM degree('{WORKING_DIRECTORY}/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', src='Person', type='knows', dst='Person');
+SELECT max(out_degree) FROM degree('__WORKING_DIRECTORY__/data/snap-musae-github-multichunk/graphar/GitMultichunk.graph.yaml', src='Person', type='knows', dst='Person');
 ----
 79
 

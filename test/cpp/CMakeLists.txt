@@ -45,6 +45,7 @@ target_link_libraries(unittest_graphar
         duckdb_generated_extension_loader
         core_functions_extension
         parquet_extension
+        jemalloc_extension
         duckdb_graphar_extension
         graphar
         Catch2::Catch2WithMain

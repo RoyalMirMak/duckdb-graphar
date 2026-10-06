@@ -60,7 +60,7 @@ TEST_CASE("Test GraphArSchemaEntry mutation methods throw", "[graphar_schema]") 
 
     // CreateTable throws
     auto base_info = make_uniq<CreateTableInfo>();
-    base_info->SetName("test_table");
+    base_info->table = "test_table";
     BoundCreateTableInfo bound_info(schema, std::move(base_info));
     REQUIRE_THROWS_AS(schema.CreateTable(transaction, bound_info), NotImplementedException);
 
@@ -68,10 +68,9 @@ TEST_CASE("Test GraphArSchemaEntry mutation methods throw", "[graphar_schema]") 
     CreateIndexInfo index_info;
     index_info.constraint_type = IndexConstraintType::NONE;
     index_info.table = "test_table";
-    index_info.SetIndexName("test_index");
+    index_info.index_name = "test_index";
     auto &tables = schema.tables;
-    auto person_table = tables.GetEntry(*con.context,
-                                        EntryLookupInfo(CatalogType::TABLE_ENTRY, QualifiedName("Person")));
+    auto person_table = tables.GetEntry(*con.context, EntryLookupInfo(CatalogType::TABLE_ENTRY, "Person"));
     REQUIRE(person_table);
     auto &person_table_entry = person_table->Cast<TableCatalogEntry>();
     REQUIRE_THROWS_AS(schema.CreateIndex(transaction, index_info, person_table_entry), NotImplementedException);
@@ -79,7 +78,7 @@ TEST_CASE("Test GraphArSchemaEntry mutation methods throw", "[graphar_schema]") 
     // DropEntry throws
     DropInfo drop_info;
     drop_info.type = CatalogType::SCHEMA_ENTRY;
-    drop_info.SetName("test_schema");
+    drop_info.name = "test_schema";
     REQUIRE_THROWS_AS(schema.DropEntry(*con.context, drop_info), NotImplementedException);
 
     con.Commit();

@@ -41,7 +41,7 @@ struct ShortestPathGlobalState : public GlobalTableFunctionState {
 class ShortestPath {
 public:
     static unique_ptr<FunctionData> Bind(ClientContext& context, TableFunctionBindInput& input,
-                                         vector<LogicalType>& return_types, vector<Identifier>& names);
+                                         vector<LogicalType>& return_types, vector<string>& names);
 
     static unique_ptr<GlobalTableFunctionState> InitGlobal(ClientContext& context, TableFunctionInitInput& input);
 

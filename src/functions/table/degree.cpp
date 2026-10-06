@@ -8,7 +8,7 @@
 #include "utils/vid_filter.hpp"
 
 #include <duckdb/common/named_parameter_map.hpp>
-#include <duckdb/common/vector/flat_vector.hpp>
+#include <duckdb/common/types/vector.hpp>
 #include <duckdb/execution/expression_executor.hpp>
 #include <duckdb/function/table_function.hpp>
 #include <duckdb/planner/expression/bound_comparison_expression.hpp>
@@ -29,7 +29,7 @@ namespace duckdb {
 // Bind
 //-------------------------------------------------------------------
 unique_ptr<FunctionData> Degree::Bind(ClientContext& context, TableFunctionBindInput& input,
-                                      vector<LogicalType>& return_types, vector<Identifier>& names) {
+                                      vector<LogicalType>& return_types, vector<string>& names) {
     bool time_logging = GraphArSettings::is_time_logging(context);
 
     ScopedTimer t("Bind");
@@ -67,7 +67,7 @@ unique_ptr<FunctionData> Degree::Bind(ClientContext& context, TableFunctionBindI
     bind_data->vertex_count = GetCountClass::GetCount(src_vertex_info, prefix);
 
     return_types.push_back(LogicalType::BIGINT);
-    names.push_back(Identifier(GID_COLUMN_INTERNAL));
+    names.push_back(GID_COLUMN_INTERNAL);
     return_types.push_back(LogicalType::BIGINT);
     names.push_back("out_degree");
     return_types.push_back(LogicalType::BIGINT);
@@ -280,13 +280,13 @@ void Degree::Execute(ClientContext& context, TableFunctionInput& input, DataChun
     // pointer.
     int64_t *data_vid = nullptr, *data_out = nullptr, *data_in = nullptr;
     if (proj_vid >= 0) {
-        data_vid = FlatVector::GetDataMutable<int64_t>(output.data[proj_vid]);
+        data_vid = FlatVector::GetData<int64_t>(output.data[proj_vid]);
     }
     if (proj_out >= 0 && gstate.read_src) {
-        data_out = FlatVector::GetDataMutable<int64_t>(output.data[proj_out]);
+        data_out = FlatVector::GetData<int64_t>(output.data[proj_out]);
     }
     if (proj_in >= 0 && gstate.read_dst) {
-        data_in = FlatVector::GetDataMutable<int64_t>(output.data[proj_in]);
+        data_in = FlatVector::GetData<int64_t>(output.data[proj_in]);
     }
 
     idx_t written = 0;
@@ -375,7 +375,7 @@ void Degree::PushdownComplexFilter(ClientContext& context, LogicalGet& get, Func
 // GetFunction
 //-------------------------------------------------------------------
 TableFunction Degree::GetFunction() {
-    TableFunction degree(Identifier("degree"), {LogicalType::VARCHAR}, Execute, Bind);
+    TableFunction degree("degree", {LogicalType::VARCHAR}, Execute, Bind);
     degree.init_global = DegreeGlobalTableFunctionState::Init;
 
     degree.filter_pushdown = false;

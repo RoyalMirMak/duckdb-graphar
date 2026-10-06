@@ -598,7 +598,7 @@ public:
     }
 
     static unique_ptr<FunctionData> Bind(ClientContext& context, TableFunctionBindInput& input,
-                                         vector<LogicalType>& return_types, vector<Identifier>& names) {
+                                         vector<LogicalType>& return_types, vector<string>& names) {
         return ReadFinal::Bind(context, input, return_types, names);
     }
 
@@ -889,6 +889,7 @@ public:
             }
         }
 
+        output.SetCapacity(num_rows);
         output.SetCardinality(num_rows);
         gstate.total_rows += num_rows;
         DUCKDB_GRAPHAR_LOG_DEBUG("Size of chunk: " + std::to_string(num_rows) +
